@@ -1,0 +1,27 @@
+<!-- dialog_add_car.xml -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp">
+
+    <!-- Spinner для выбора марки авто -->
+    <Spinner
+        android:id="@+id/spinnerCarBrand"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <!-- Spinner для выбора модели авто -->
+    <Spinner
+        android:id="@+id/spinnerCarModel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <!-- EditText для ввода пробега -->
+    <EditText
+        android:id="@+id/editTextMileage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter mileage"
+        android:inputType="number" />
+</LinearLayout>

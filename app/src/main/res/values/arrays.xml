@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Массив марок автомобилей -->
+    <string-array name="car_brands">
+        <item>Ford</item>
+        <item>Toyota</item>
+        <item>BMW</item>
+    </string-array>
+
+    <!-- Массив моделей для каждой марки -->
+    <array name="ford_models">
+        <item>Focus</item>
+        <item>Mustang</item>
+        <item>Fiesta</item>
+    </array>
+
+    <array name="toyota_models">
+        <item>Corolla</item>
+        <item>Camry</item>
+        <item>RAV4</item>
+    </array>
+
+    <array name="bmw_models">
+        <item>3 Series</item>
+        <item>5 Series</item>
+        <item>X5</item>
+    </array>
+</resources>
+
+

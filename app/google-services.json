@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "81638466758",
+    "project_id": "kurs-06-12-2024",
+    "storage_bucket": "kurs-06-12-2024.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:81638466758:android:c0565fdc05c4bb93a463c7",
+        "android_client_info": {
+          "package_name": "com.example.kurs_06_12_2024"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "81638466758-1he1gt7h861ub472mv1inhogmpgc8dun.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.kurs_06_12_2024",
+            "certificate_hash": "7d621dc218a3e37263478ddefc2c719876d7d4cb"
+          }
+        },
+        {
+          "client_id": "81638466758-qv78k8801ahff9ogerb4j465k058fb6k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAls6q8lj_nUfZr29acsuxspJBFEJpDhUY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "81638466758-qv78k8801ahff9ogerb4j465k058fb6k.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
