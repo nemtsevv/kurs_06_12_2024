@@ -41,13 +41,23 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:21.2.0")
     implementation("com.google.android.gms:play-services-base:18.0.1")
 
-    // Other dependencies
-    implementation(libs.appcompat)
-    implementation(libs.material)
-    implementation(libs.activity)
-    implementation(libs.constraintlayout)
-    implementation(libs.firebase.firestore)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.ext.junit)
-    androidTestImplementation(libs.espresso.core)
+    // Подключение библиотеки для работы с датами
+    implementation("com.jakewharton.threetenabp:threetenabp:1.2.1")
+
+    // Material Calendar View и Material Design компоненты
+    implementation("com.github.prolificinteractive:material-calendarview:2.0.1")
+    implementation("com.google.android.material:material:1.9.0")
+
+    // AndroidX библиотеки
+    implementation("androidx.appcompat:appcompat:1.6.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.activity:activity-ktx:1.6.0")
+
+    // Библиотека Firebase Firestore
+    implementation("com.google.firebase:firebase-firestore:25.1.1")
+
+    // Тестовые библиотеки
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.espresso:espresso-core:3.5.1")
 }

@@ -11,14 +11,18 @@ import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,7 +58,6 @@ public class CalendarsActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
 
         calendarList = new ArrayList<>();
-        // Передаем контекст в адаптер
         calendarAdapter = new CalendarsAdapter(this, calendarList);
         calendarRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         calendarRecyclerView.setAdapter(calendarAdapter);
@@ -62,7 +65,6 @@ public class CalendarsActivity extends AppCompatActivity {
         loadCars();
         loadCalendars();
 
-        // Обработчик для кнопки добавления календаря
         addButton.setOnClickListener(v -> {
             Log.d(TAG, "Add button clicked");
             if (addCalendarLayout.getVisibility() == View.GONE) {
@@ -162,5 +164,61 @@ public class CalendarsActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Toast.makeText(CalendarsActivity.this, "Error adding calendar: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    public void onShowCalendarClick(View view) {
+        Log.d(TAG, "onShowCalendarClick called");
+
+        MaterialDatePicker<Long> materialDatePicker = MaterialDatePicker.Builder.datePicker()
+                .setTitleText("Выберите дату")
+                .build();
+
+        materialDatePicker.addOnPositiveButtonClickListener(selection -> {
+            Log.d(TAG, "Date selected: " + selection);
+
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            String selectedDate = dateFormat.format(selection);
+
+            checkEventForDate(selectedDate);
+        });
+
+        Log.d(TAG, "MaterialDatePicker is about to show");
+        materialDatePicker.show(getSupportFragmentManager(), "MATERIAL_DATE_PICKER");
+    }
+
+
+    private void checkEventForDate(String date) {
+        String userId = mAuth.getCurrentUser().getUid();
+
+        db.collection("users").document(userId).collection("car_events")
+                .whereEqualTo("eventDate", date)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        QuerySnapshot querySnapshot = task.getResult();
+                        if (querySnapshot != null && !querySnapshot.isEmpty()) {
+                            showEventsDialog(querySnapshot.getDocuments());
+                        } else {
+                            Toast.makeText(CalendarsActivity.this, "Нет событий на эту дату", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Toast.makeText(CalendarsActivity.this, "Ошибка при загрузке событий", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void showEventsDialog(List<DocumentSnapshot> events) {
+        StringBuilder eventsList = new StringBuilder();
+        for (DocumentSnapshot event : events) {
+            String eventDescription = event.getString("eventDescription");
+            eventsList.append(eventDescription).append("\n");
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("События на выбранную дату")
+                .setMessage(eventsList.toString())
+                .setPositiveButton("ОК", (dialog, which) -> dialog.dismiss())
+                .create()
+                .show();
     }
 }

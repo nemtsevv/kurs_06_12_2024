@@ -1,7 +1,7 @@
 package com.example.kurs_06_12_2024;
 
 import android.content.Context;
-import android.content.DialogInterface;
+import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,17 +11,23 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.prolificinteractive.materialcalendarview.CalendarDay;
+import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
+import org.threeten.bp.LocalDate;
+import org.threeten.bp.format.DateTimeFormatter;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
-// Добавляем правильный импорт
-import android.app.DatePickerDialog;
 
 public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.CalendarViewHolder> {
 
@@ -60,11 +66,10 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                         (dialog, which) -> {
                             switch (which) {
                                 case 0:
-                                    showDatePickerDialog(calendar); // Показать диалог выбора даты
+                                    showMaterialDatePicker(calendar); // Используем MaterialDatePicker
                                     break;
                                 case 1:
-                                    // Показать календарь
-                                    Toast.makeText(context, "Показать календарь: " + calendar.getCalendarName(), Toast.LENGTH_SHORT).show();
+                                    showCalendarDialog(calendar); // Показать календарь с выделением дат
                                     break;
                                 case 2:
                                     deleteCalendar(calendar, position); // Удалить календарь
@@ -75,27 +80,28 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                 .show();
     }
 
-    private void showDatePickerDialog(MyCalendar calendar) {
-        // Получаем текущую дату
-        Calendar calendarInstance = Calendar.getInstance();
-        int year = calendarInstance.get(Calendar.YEAR);
-        int month = calendarInstance.get(Calendar.MONTH);
-        int dayOfMonth = calendarInstance.get(Calendar.DAY_OF_MONTH);
+    private void showMaterialDatePicker(MyCalendar calendar) {
+        MaterialDatePicker<Long> materialDatePicker = MaterialDatePicker.Builder.datePicker()
+                .setTitleText("Выберите дату")
+                .build();
 
-        // Создаем DatePickerDialog
-        DatePickerDialog datePickerDialog = new DatePickerDialog(context, new DatePickerDialog.OnDateSetListener() {
-            @Override
-            public void onDateSet(android.widget.DatePicker view, int year1, int month1, int dayOfMonth1) {
-                // Выбрали дату, теперь запрашиваем описание события
-                showEventInputDialog(calendar, year1, month1, dayOfMonth1);
-            }
-        }, year, month, dayOfMonth);
+        materialDatePicker.addOnPositiveButtonClickListener(selection -> {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            String selectedDate = dateFormat.format(selection);
 
-        datePickerDialog.show(); // Показываем диалог выбора даты
+            showEventInputDialog(calendar, selectedDate);
+        });
+
+        // Показываем MaterialDatePicker
+        if (context instanceof AppCompatActivity) {
+            AppCompatActivity activity = (AppCompatActivity) context;
+            materialDatePicker.show(activity.getSupportFragmentManager(), "MATERIAL_DATE_PICKER");
+        } else {
+            Toast.makeText(context, "Ошибка: контекст не является экземпляром AppCompatActivity", Toast.LENGTH_SHORT).show();
+        }
     }
 
-    private void showEventInputDialog(MyCalendar calendar, int year, int month, int dayOfMonth) {
-        // Диалог для ввода описания события
+    private void showEventInputDialog(MyCalendar calendar, String selectedDate) {
         final EditText eventEditText = new EditText(context);
         eventEditText.setHint("Введите описание события, например, замена масла");
 
@@ -109,46 +115,39 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                         return;
                     }
 
-                    // Сохраняем событие в Firestore
-                    saveEventToFirestore(calendar, year, month, dayOfMonth, eventDescription);
+                    saveEventToFirestore(calendar, selectedDate, eventDescription);
                 })
                 .setNegativeButton("Отмена", null)
                 .show();
     }
 
-    private void saveEventToFirestore(MyCalendar calendar, int year, int month, int dayOfMonth, String eventDescription) {
+    private void saveEventToFirestore(MyCalendar calendar, String selectedDate, String eventDescription) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        // Проверка, что текущий пользователь авторизован
         if (userId == null) {
             Toast.makeText(context, "Пользователь не авторизован", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Создаем объект события
         CarEvent event = new CarEvent(
                 calendar.getCalendarName(),
                 calendar.getCarBrand(),
                 calendar.getCarModel(),
-                year, month, dayOfMonth, eventDescription);
+                selectedDate, eventDescription);
 
-        // Логируем объект события
         Log.d("Firestore", "Событие, которое добавляем: " + event.toString());
 
-        // Находим календарь в Firestore по calendarName
         db.collection("users").document(userId).collection("calendars")
                 .whereEqualTo("calendarName", calendar.getCalendarName())
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && !task.getResult().isEmpty()) {
-                        // Получаем первый документ, так как calendarName уникален
                         DocumentSnapshot calendarDoc = task.getResult().getDocuments().get(0);
 
-                        // Добавляем событие в подколлекцию "events" этого календаря
                         db.collection("users").document(userId).collection("calendars")
-                                .document(calendarDoc.getId()) // Идентификатор документа календаря
-                                .collection("events") // Коллекция событий
+                                .document(calendarDoc.getId())
+                                .collection("events")
                                 .add(event)
                                 .addOnSuccessListener(documentReference -> {
                                     Log.d("Firestore", "Событие успешно добавлено с ID: " + documentReference.getId());
@@ -163,10 +162,6 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                     }
                 });
     }
-
-
-
-
 
     private void deleteCalendar(MyCalendar calendar, int position) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -188,6 +183,126 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                         }
                     } else {
                         Toast.makeText(context, "Ошибка при поиске календаря", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void showCalendarDialog(MyCalendar calendar) {
+        // Создаем диалог для отображения календаря
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+
+        // Внешний вид календаря
+        View view = LayoutInflater.from(context).inflate(R.layout.dialog_calendar, null);
+        MaterialCalendarView materialCalendarView = view.findViewById(R.id.calendarView);
+
+        // Загружаем события для этого календаря
+        loadEventsForCalendar(calendar, materialCalendarView);
+
+        builder.setTitle("Календарь: " + calendar.getCalendarName())
+                .setView(view)
+                .setPositiveButton("Закрыть", null)
+                .create()
+                .show();
+    }
+
+    private void loadEventsForCalendar(MyCalendar calendar, MaterialCalendarView materialCalendarView) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        db.collection("users").document(userId).collection("calendars")
+                .whereEqualTo("calendarName", calendar.getCalendarName())
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot calendarDoc = task.getResult().getDocuments().get(0);
+                        db.collection("users").document(userId).collection("calendars")
+                                .document(calendarDoc.getId())
+                                .collection("events")
+                                .get()
+                                .addOnCompleteListener(eventsTask -> {
+                                    if (eventsTask.isSuccessful()) {
+                                        List<DocumentSnapshot> events = eventsTask.getResult().getDocuments();
+                                        for (DocumentSnapshot event : events) {
+                                            String eventDate = event.getString("eventDate");
+
+                                            try {
+                                                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                                                Date date = sdf.parse(eventDate);
+                                                Calendar calendarDate = Calendar.getInstance();
+                                                calendarDate.setTime(date);
+
+                                                // Преобразуем в LocalDate
+                                                LocalDate localDate = LocalDate.of(calendarDate.get(Calendar.YEAR),
+                                                        calendarDate.get(Calendar.MONTH) + 1,
+                                                        calendarDate.get(Calendar.DAY_OF_MONTH));
+
+                                                // Добавляем дату в календарь
+                                                CalendarDay calendarDay = CalendarDay.from(localDate);
+                                                materialCalendarView.setDateSelected(calendarDay, true);
+
+                                                // Добавляем красный кружок
+                                                Drawable redCircle = context.getResources().getDrawable(R.drawable.event_circle);
+                                                EventDecorator decorator = new EventDecorator(calendarDay, redCircle);
+                                                materialCalendarView.addDecorator(decorator);
+
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }
+                                        }
+
+                                        materialCalendarView.setOnDateChangedListener((widget, date, selected) -> {
+                                            showEventDetailsForDate(calendar, date);
+                                        });
+                                    }
+                                });
+                    }
+                });
+    }
+
+    private void showEventDetailsForDate(MyCalendar calendar, CalendarDay selectedDate) {
+        int year = selectedDate.getYear();
+        int month = selectedDate.getMonth() - 1;
+        int day = selectedDate.getDay();
+
+        Calendar calendarInstance = Calendar.getInstance();
+        calendarInstance.set(year, month, day, 0, 0, 0);
+        Date date = calendarInstance.getTime();
+
+        String selectedDateString = new SimpleDateFormat("yyyy-MM-dd").format(date);
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        db.collection("users").document(userId).collection("calendars")
+                .whereEqualTo("calendarName", calendar.getCalendarName())
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot calendarDoc = task.getResult().getDocuments().get(0);
+                        db.collection("users").document(userId).collection("calendars")
+                                .document(calendarDoc.getId())
+                                .collection("events")
+                                .whereEqualTo("eventDate", selectedDateString)
+                                .get()
+                                .addOnCompleteListener(eventsTask -> {
+                                    if (eventsTask.isSuccessful()) {
+                                        List<DocumentSnapshot> events = eventsTask.getResult().getDocuments();
+                                        if (!events.isEmpty()) {
+                                            StringBuilder eventDetails = new StringBuilder();
+                                            for (DocumentSnapshot event : events) {
+                                                eventDetails.append(event.getString("eventDescription")).append("\n");
+                                            }
+
+                                            new AlertDialog.Builder(context)
+                                                    .setTitle("События на " + selectedDateString)
+                                                    .setMessage(eventDetails.toString())
+                                                    .setPositiveButton("ОК", null)
+                                                    .show();
+                                        } else {
+                                            Toast.makeText(context, "Нет событий на эту дату", Toast.LENGTH_SHORT).show();
+                                        }
+                                    }
+                                });
                     }
                 });
     }
