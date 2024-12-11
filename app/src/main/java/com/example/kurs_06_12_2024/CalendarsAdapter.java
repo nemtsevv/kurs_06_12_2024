@@ -115,6 +115,9 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
         Spinner categorySpinner = dialogView.findViewById(R.id.categorySpinner);
         Spinner actionSpinner = dialogView.findViewById(R.id.actionSpinner);
 
+        // Добавляем поле для ввода стоимости
+        EditText costEditText = dialogView.findViewById(R.id.costEditText); // новое поле для стоимости
+
         // Устанавливаем адаптер для категории
         ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, eventCategories);
         categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -160,6 +163,18 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                     String selectedCategory = categorySpinner.getSelectedItem().toString();
                     String selectedAction = actionSpinner.getSelectedItem().toString();
 
+                    // Получаем стоимость события
+                    String costString = costEditText.getText().toString();
+                    double eventCost = 0.0;
+                    if (!costString.isEmpty()) {
+                        try {
+                            eventCost = Double.parseDouble(costString);
+                        } catch (NumberFormatException e) {
+                            Toast.makeText(context, "Введите правильную стоимость", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
+
                     // Проверяем, выбраны ли значения
                     if (selectedCategory.isEmpty() || selectedAction.isEmpty()) {
                         Toast.makeText(context, "Пожалуйста, выберите категорию и действие", Toast.LENGTH_SHORT).show();
@@ -167,16 +182,14 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                     }
 
                     // Сохраняем событие в Firestore
-                    saveEventToFirestore(calendar, selectedDate, selectedCategory, selectedAction);
+                    saveEventToFirestore(calendar, selectedDate, selectedCategory, selectedAction, eventCost);
                 })
                 .setNegativeButton("Отмена", null)
                 .show();
     }
 
 
-
-
-    private void saveEventToFirestore(MyCalendar calendar, String selectedDate, String selectedCategory, String selectedAction) {
+    private void saveEventToFirestore(MyCalendar calendar, String selectedDate, String selectedCategory, String selectedAction, double eventCost) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
@@ -185,13 +198,14 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
             return;
         }
 
-        // Создаем объект события с добавлением категории и действия
+        // Создаем объект события с добавлением категории, действия и стоимости
         CarEvent event = new CarEvent(
                 calendar.getCalendarName(),
                 calendar.getCarBrand(),
                 calendar.getCarModel(),
                 selectedDate,
-                selectedCategory + ": " + selectedAction // Сохраняем категорию и действие
+                selectedCategory + ": " + selectedAction, // Сохраняем категорию и действие
+                eventCost
         );
 
         db.collection("users").document(userId).collection("calendars")

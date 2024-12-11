@@ -4,16 +4,18 @@ public class CarEvent {
     private String calendarName;
     private String carBrand;
     private String carModel;
-    private String eventDate; // Изменяем тип на String
+    private String eventDate; // Дата события в формате String
     private String eventDescription;
+    private double eventCost; // Стоимость события
 
-    // Конструктор с параметрами
-    public CarEvent(String calendarName, String carBrand, String carModel, String eventDate, String eventDescription) {
+    // Конструктор с параметрами, теперь добавлен параметр для стоимости
+    public CarEvent(String calendarName, String carBrand, String carModel, String eventDate, String eventDescription, double eventCost) {
         this.calendarName = calendarName;
         this.carBrand = carBrand;
         this.carModel = carModel;
         this.eventDate = eventDate;
         this.eventDescription = eventDescription;
+        this.eventCost = eventCost; // Инициализируем стоимость
     }
 
     // Геттеры и сеттеры
@@ -57,6 +59,14 @@ public class CarEvent {
         this.eventDescription = eventDescription;
     }
 
+    public double getEventCost() {
+        return eventCost;
+    }
+
+    public void setEventCost(double eventCost) {
+        this.eventCost = eventCost;
+    }
+
     @Override
     public String toString() {
         return "CarEvent{" +
@@ -65,6 +75,7 @@ public class CarEvent {
                 ", carModel='" + carModel + '\'' +
                 ", eventDate='" + eventDate + '\'' +
                 ", eventDescription='" + eventDescription + '\'' +
+                ", eventCost=" + eventCost + // Исправляем на правильный тип
                 '}';
     }
 }
