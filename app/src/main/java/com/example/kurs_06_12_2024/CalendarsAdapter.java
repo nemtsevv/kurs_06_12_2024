@@ -6,7 +6,10 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -102,26 +105,78 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
     }
 
     private void showEventInputDialog(MyCalendar calendar, String selectedDate) {
-        final EditText eventEditText = new EditText(context);
-        eventEditText.setHint("Введите описание события, например, замена масла");
+        // Загружаем массивы из arrays.xml
+        String[] eventCategories = context.getResources().getStringArray(R.array.event_categories);
+        String[] regularMaintenanceActions = context.getResources().getStringArray(R.array.regular_maintenance_actions);
+        String[] repairActions = context.getResources().getStringArray(R.array.repair_actions);
 
+        // Создаём контейнер для Spinner'ов
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_event_input, null);
+        Spinner categorySpinner = dialogView.findViewById(R.id.categorySpinner);
+        Spinner actionSpinner = dialogView.findViewById(R.id.actionSpinner);
+
+        // Устанавливаем адаптер для категории
+        ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, eventCategories);
+        categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        categorySpinner.setAdapter(categoryAdapter);
+
+        // Локальная переменная для actionAdapter
+        final ArrayAdapter<String> actionAdapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, new String[]{});  // Изначально пустой список
+        actionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        actionSpinner.setAdapter(actionAdapter);
+
+        // Меняем действия в зависимости от выбранной категории
+        categorySpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
+                // В зависимости от выбранной категории, обновляем действия
+                String[] newActions;
+                if (eventCategories[position].equals("Регулярное обслуживание")) {
+                    newActions = regularMaintenanceActions;
+                } else if (eventCategories[position].equals("Необходимость ремонта")) {
+                    newActions = repairActions;
+                } else {
+                    newActions = new String[] {};  // Пустой список для "Прочее"
+                }
+
+                // Создаем новый адаптер с обновленным списком действий
+                ArrayAdapter<String> newActionAdapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, newActions);
+                newActionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                actionSpinner.setAdapter(newActionAdapter);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parentView) {
+                // Обработчик для случая, если ничего не выбрано
+            }
+        });
+
+        // Создаем и показываем диалог
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle("Введите событие")
-                .setView(eventEditText)
+        builder.setTitle("Введите событие для " + calendar.getCarBrand() + " " + calendar.getCarModel())
+                .setView(dialogView)
                 .setPositiveButton("Сохранить", (dialog, which) -> {
-                    String eventDescription = eventEditText.getText().toString().trim();
-                    if (eventDescription.isEmpty()) {
-                        Toast.makeText(context, "Описание события не может быть пустым", Toast.LENGTH_SHORT).show();
+                    // Получаем выбранную категорию и действие
+                    String selectedCategory = categorySpinner.getSelectedItem().toString();
+                    String selectedAction = actionSpinner.getSelectedItem().toString();
+
+                    // Проверяем, выбраны ли значения
+                    if (selectedCategory.isEmpty() || selectedAction.isEmpty()) {
+                        Toast.makeText(context, "Пожалуйста, выберите категорию и действие", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
-                    saveEventToFirestore(calendar, selectedDate, eventDescription);
+                    // Сохраняем событие в Firestore
+                    saveEventToFirestore(calendar, selectedDate, selectedCategory, selectedAction);
                 })
                 .setNegativeButton("Отмена", null)
                 .show();
     }
 
-    private void saveEventToFirestore(MyCalendar calendar, String selectedDate, String eventDescription) {
+
+
+
+    private void saveEventToFirestore(MyCalendar calendar, String selectedDate, String selectedCategory, String selectedAction) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
@@ -130,13 +185,14 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
             return;
         }
 
+        // Создаем объект события с добавлением категории и действия
         CarEvent event = new CarEvent(
                 calendar.getCalendarName(),
                 calendar.getCarBrand(),
                 calendar.getCarModel(),
-                selectedDate, eventDescription);
-
-        Log.d("Firestore", "Событие, которое добавляем: " + event.toString());
+                selectedDate,
+                selectedCategory + ": " + selectedAction // Сохраняем категорию и действие
+        );
 
         db.collection("users").document(userId).collection("calendars")
                 .whereEqualTo("calendarName", calendar.getCalendarName())
@@ -150,11 +206,9 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                                 .collection("events")
                                 .add(event)
                                 .addOnSuccessListener(documentReference -> {
-                                    Log.d("Firestore", "Событие успешно добавлено с ID: " + documentReference.getId());
                                     Toast.makeText(context, "Событие добавлено", Toast.LENGTH_SHORT).show();
                                 })
                                 .addOnFailureListener(e -> {
-                                    Log.e("Firestore", "Ошибка при добавлении события", e);
                                     Toast.makeText(context, "Ошибка при добавлении события", Toast.LENGTH_SHORT).show();
                                 });
                     } else {
@@ -162,6 +216,7 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                     }
                 });
     }
+
 
     private void deleteCalendar(MyCalendar calendar, int position) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();

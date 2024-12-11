@@ -25,6 +25,28 @@
         <item>5 Series</item>
         <item>X5</item>
     </array>
+
+
+    <!-- Список категорий событий -->
+    <string-array name="event_categories">
+        <item>Регулярное обслуживание</item>
+        <item>Необходимость ремонта</item>
+        <item>Прочее</item>
+    </string-array>
+
+    <!-- Список действий для регулярного обслуживания -->
+    <string-array name="regular_maintenance_actions">
+        <item>ТО</item>
+        <item>Проверка уровня жидкости</item>
+        <item>Замена масла</item>
+        <item>Замена топливного фильтра</item>
+    </string-array>
+
+    <!-- Список действий для необходимости ремонта -->
+    <string-array name="repair_actions">
+        <item>Ремонт тормозной системы</item>
+        <item>Ремонт двигателя</item>
+    </string-array>
 </resources>
 
 
