@@ -1,4 +1,7 @@
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#FF0000"/> <!-- Красный цвет для события -->
-    <corners android:radius="555dp"/> <!-- Сглаженные углы, чтобы создать круг -->
+    <solid android:color="@android:color/transparent"/> <!-- Прозрачный фон -->
+    <stroke
+        android:width="4dp"
+        android:color="#FF4081"/> <!-- Красный цвет для обводки -->
+    <corners android:radius="180dp"/> <!-- Сглаженные углы, чтобы создать круг -->
 </shape>
