@@ -17,14 +17,20 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
-    <!-- Поле для ввода стоимости события -->
+    <!-- Поле для ввода стоимости -->
     <EditText
-        android:id="@+id/costEditText"
+        android:id="@+id/eventCostEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Введите стоимость"
         android:inputType="numberDecimal"
-        android:layout_marginTop="16dp"
-        android:importantForAccessibility="yes" />
+        android:hint="Введите стоимость" />
+
+    <!-- Поле для ввода пробега -->
+    <EditText
+        android:id="@+id/eventMileageEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="numberDecimal"
+        android:hint="Введите пробег (км)" />
 
 </LinearLayout>

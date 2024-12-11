@@ -114,9 +114,8 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
         View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_event_input, null);
         Spinner categorySpinner = dialogView.findViewById(R.id.categorySpinner);
         Spinner actionSpinner = dialogView.findViewById(R.id.actionSpinner);
-
-        // Добавляем поле для ввода стоимости
-        EditText costEditText = dialogView.findViewById(R.id.costEditText); // новое поле для стоимости
+        EditText costEditText = dialogView.findViewById(R.id.eventCostEditText); // Поле для ввода стоимости
+        EditText mileageEditText = dialogView.findViewById(R.id.eventMileageEditText); // Поле для ввода пробега
 
         // Устанавливаем адаптер для категории
         ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, eventCategories);
@@ -162,34 +161,28 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                     // Получаем выбранную категорию и действие
                     String selectedCategory = categorySpinner.getSelectedItem().toString();
                     String selectedAction = actionSpinner.getSelectedItem().toString();
-
-                    // Получаем стоимость события
-                    String costString = costEditText.getText().toString();
-                    double eventCost = 0.0;
-                    if (!costString.isEmpty()) {
-                        try {
-                            eventCost = Double.parseDouble(costString);
-                        } catch (NumberFormatException e) {
-                            Toast.makeText(context, "Введите правильную стоимость", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                    }
+                    String eventCostStr = costEditText.getText().toString();
+                    String eventMileageStr = mileageEditText.getText().toString();
 
                     // Проверяем, выбраны ли значения
-                    if (selectedCategory.isEmpty() || selectedAction.isEmpty()) {
-                        Toast.makeText(context, "Пожалуйста, выберите категорию и действие", Toast.LENGTH_SHORT).show();
+                    if (selectedCategory.isEmpty() || selectedAction.isEmpty() || eventCostStr.isEmpty() || eventMileageStr.isEmpty()) {
+                        Toast.makeText(context, "Пожалуйста, заполните все поля", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
+                    double eventCost = Double.parseDouble(eventCostStr);
+                    double eventMileage = Double.parseDouble(eventMileageStr);
+
                     // Сохраняем событие в Firestore
-                    saveEventToFirestore(calendar, selectedDate, selectedCategory, selectedAction, eventCost);
+                    saveEventToFirestore(calendar, selectedDate, selectedCategory, selectedAction, eventCost, eventMileage);
                 })
                 .setNegativeButton("Отмена", null)
                 .show();
     }
 
 
-    private void saveEventToFirestore(MyCalendar calendar, String selectedDate, String selectedCategory, String selectedAction, double eventCost) {
+
+    private void saveEventToFirestore(MyCalendar calendar, String selectedDate, String selectedCategory, String selectedAction, double eventCost, double eventMileage) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
@@ -198,14 +191,15 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
             return;
         }
 
-        // Создаем объект события с добавлением категории, действия и стоимости
+        // Создаем объект события с добавлением категории, действия, стоимости и пробега
         CarEvent event = new CarEvent(
                 calendar.getCalendarName(),
                 calendar.getCarBrand(),
                 calendar.getCarModel(),
                 selectedDate,
                 selectedCategory + ": " + selectedAction, // Сохраняем категорию и действие
-                eventCost
+                eventCost,
+                eventMileage
         );
 
         db.collection("users").document(userId).collection("calendars")
@@ -220,16 +214,15 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                                 .collection("events")
                                 .add(event)
                                 .addOnSuccessListener(documentReference -> {
-                                    Toast.makeText(context, "Событие добавлено", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(context, "Событие сохранено", Toast.LENGTH_SHORT).show();
                                 })
                                 .addOnFailureListener(e -> {
-                                    Toast.makeText(context, "Ошибка при добавлении события", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(context, "Ошибка сохранения события", Toast.LENGTH_SHORT).show();
                                 });
-                    } else {
-                        Toast.makeText(context, "Не найден календарь для этого автомобиля", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
+
 
 
     private void deleteCalendar(MyCalendar calendar, int position) {
@@ -241,20 +234,46 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
+                        // Получаем документ календаря
                         for (DocumentSnapshot document : task.getResult()) {
+                            // Удаляем все события, связанные с этим календарем
+                            db.collection("users").document(userId).collection("calendars")
+                                    .document(document.getId())
+                                    .collection("events")
+                                    .get()
+                                    .addOnCompleteListener(eventsTask -> {
+                                        if (eventsTask.isSuccessful()) {
+                                            for (DocumentSnapshot eventDoc : eventsTask.getResult()) {
+                                                // Удаляем каждое событие
+                                                eventDoc.getReference().delete()
+                                                        .addOnSuccessListener(aVoid -> {
+                                                            // Событие удалено
+                                                        })
+                                                        .addOnFailureListener(e -> {
+                                                            Toast.makeText(context, "Ошибка при удалении события", Toast.LENGTH_SHORT).show();
+                                                        });
+                                            }
+                                        }
+                                    });
+
+                            // Удаляем сам календарь
                             document.getReference().delete()
                                     .addOnSuccessListener(aVoid -> {
+                                        // Удаляем календарь из списка и обновляем UI
                                         calendarList.remove(position);
                                         notifyItemRemoved(position);
-                                        Toast.makeText(context, "Календарь удалён", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(context, "Календарь и все события удалены", Toast.LENGTH_SHORT).show();
                                     })
-                                    .addOnFailureListener(e -> Toast.makeText(context, "Ошибка при удалении", Toast.LENGTH_SHORT).show());
+                                    .addOnFailureListener(e -> {
+                                        Toast.makeText(context, "Ошибка при удалении календаря", Toast.LENGTH_SHORT).show();
+                                    });
                         }
                     } else {
                         Toast.makeText(context, "Ошибка при поиске календаря", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
+
 
     private void showCalendarDialog(MyCalendar calendar) {
         // Создаем диалог для отображения календаря
@@ -273,6 +292,7 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                 .create()
                 .show();
     }
+
 
     private void loadEventsForCalendar(MyCalendar calendar, MaterialCalendarView materialCalendarView) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -319,8 +339,9 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                                             }
                                         }
 
+                                        // Теперь, при изменении даты, будем передавать MaterialCalendarView
                                         materialCalendarView.setOnDateChangedListener((widget, date, selected) -> {
-                                            showEventDetailsForDate(calendar, date);
+                                            showEventDetailsForDate(calendar, date, materialCalendarView);
                                         });
                                     }
                                 });
@@ -328,9 +349,10 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                 });
     }
 
-    private void showEventDetailsForDate(MyCalendar calendar, CalendarDay selectedDate) {
+
+    private void showEventDetailsForDate(MyCalendar calendar, CalendarDay selectedDate, MaterialCalendarView materialCalendarView) {
         int year = selectedDate.getYear();
-        int month = selectedDate.getMonth() - 1;
+        int month = selectedDate.getMonth() - 1; // Месяцы в Java Calendar начинаются с 0
         int day = selectedDate.getDay();
 
         Calendar calendarInstance = Calendar.getInstance();
@@ -362,10 +384,15 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                                                 eventDetails.append(event.getString("eventDescription")).append("\n");
                                             }
 
+                                            // Диалог с возможностью удалить событие
                                             new AlertDialog.Builder(context)
                                                     .setTitle("События на " + selectedDateString)
                                                     .setMessage(eventDetails.toString())
                                                     .setPositiveButton("ОК", null)
+                                                    .setNegativeButton("Удалить событие", (dialog, which) -> {
+                                                        // Удаляем событие при нажатии на кнопку "Удалить"
+                                                        deleteEventFromFirestore(events.get(0), calendar, materialCalendarView, selectedDate);
+                                                    })
                                                     .show();
                                         } else {
                                             Toast.makeText(context, "Нет событий на эту дату", Toast.LENGTH_SHORT).show();
@@ -375,6 +402,46 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                     }
                 });
     }
+
+
+
+
+
+    private void deleteEventFromFirestore(DocumentSnapshot eventDoc, MyCalendar calendar, MaterialCalendarView materialCalendarView, CalendarDay selectedDate) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        db.collection("users").document(userId).collection("calendars")
+                .whereEqualTo("calendarName", calendar.getCalendarName())
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot calendarDoc = task.getResult().getDocuments().get(0);
+                        db.collection("users").document(userId).collection("calendars")
+                                .document(calendarDoc.getId())
+                                .collection("events")
+                                .document(eventDoc.getId())
+                                .delete()
+                                .addOnSuccessListener(aVoid -> {
+                                    // Очистить все декораторы
+                                    materialCalendarView.removeDecorators();
+
+                                    // Перезагрузить события для данного календаря и даты
+                                    loadEventsForCalendar(calendar, materialCalendarView);
+
+                                    Toast.makeText(context, "Событие удалено", Toast.LENGTH_SHORT).show();
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(context, "Ошибка при удалении события", Toast.LENGTH_SHORT).show();
+                                });
+                    }
+                });
+    }
+
+
+
+
+
 
     public static class CalendarViewHolder extends RecyclerView.ViewHolder {
         TextView calendarNameTextView;

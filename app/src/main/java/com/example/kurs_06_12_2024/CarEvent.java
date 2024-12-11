@@ -1,21 +1,24 @@
 package com.example.kurs_06_12_2024;
 
+
 public class CarEvent {
     private String calendarName;
     private String carBrand;
     private String carModel;
-    private String eventDate; // Дата события в формате String
+    private String eventDate; // Дата события
     private String eventDescription;
     private double eventCost; // Стоимость события
+    private double eventMileage; // Пробег в километрах
 
-    // Конструктор с параметрами, теперь добавлен параметр для стоимости
-    public CarEvent(String calendarName, String carBrand, String carModel, String eventDate, String eventDescription, double eventCost) {
+    // Конструктор с параметрами, добавлен параметр для пробега
+    public CarEvent(String calendarName, String carBrand, String carModel, String eventDate, String eventDescription, double eventCost, double eventMileage) {
         this.calendarName = calendarName;
         this.carBrand = carBrand;
         this.carModel = carModel;
         this.eventDate = eventDate;
         this.eventDescription = eventDescription;
-        this.eventCost = eventCost; // Инициализируем стоимость
+        this.eventCost = eventCost; // Инициализация стоимости
+        this.eventMileage = eventMileage; // Инициализация пробега
     }
 
     // Геттеры и сеттеры
@@ -67,6 +70,14 @@ public class CarEvent {
         this.eventCost = eventCost;
     }
 
+    public double getEventMileage() {
+        return eventMileage;
+    }
+
+    public void setEventMileage(double eventMileage) {
+        this.eventMileage = eventMileage;
+    }
+
     @Override
     public String toString() {
         return "CarEvent{" +
@@ -75,7 +86,8 @@ public class CarEvent {
                 ", carModel='" + carModel + '\'' +
                 ", eventDate='" + eventDate + '\'' +
                 ", eventDescription='" + eventDescription + '\'' +
-                ", eventCost=" + eventCost + // Исправляем на правильный тип
+                ", eventCost=" + eventCost +
+                ", eventMileage=" + eventMileage + // Добавили пробег в вывод
                 '}';
     }
 }
