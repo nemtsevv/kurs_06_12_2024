@@ -3,20 +3,29 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:background="?android:attr/selectableItemBackground"
-    android:elevation="4dp"
-    android:layout_marginBottom="16dp">
+    android:padding="20dp"
+    android:background="@android:color/white">
+
+    <!-- Кнопка закрытия (в виде картинки) -->
+    <ImageView
+        android:id="@+id/customCloseButton"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="end"
+        android:src="@drawable/ic_custom_button"
+        android:contentDescription="Close Button"
+        android:layout_marginBottom="12dp"
+        android:tint="@android:color/black"/>
 
     <!-- Логотип автомобиля -->
     <ImageView
-        android:id="@+id/carLogo"
+        android:id="@+id/carLogoInDialog"
         android:layout_width="120dp"
         android:layout_height="120dp"
         android:layout_gravity="center"
         android:contentDescription="Car Logo"
-        android:layout_marginBottom="12dp"
-        android:src="@drawable/default_logo"/>
+        android:src="@drawable/default_logo"
+        android:layout_marginBottom="16dp" />
 
     <!-- Бренд автомобиля -->
     <TextView
@@ -24,8 +33,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Car Brand"
-        android:textSize="20sp"
-        android:textColor="@android:color/black"
+        android:textSize="22sp"
+        android:textColor="#333333"
         android:textStyle="bold"
         android:layout_marginBottom="4dp"/>
 
@@ -36,17 +45,7 @@
         android:layout_height="wrap_content"
         android:text="Car Model"
         android:textSize="18sp"
-        android:textColor="@android:color/darker_gray"
-        android:layout_marginBottom="8dp"/>
-
-    <!-- Пробег автомобиля -->
-    <TextView
-        android:id="@+id/carMileage"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Mileage"
-        android:textSize="16sp"
-        android:textColor="@android:color/darker_gray"
+        android:textColor="#888888"
         android:layout_marginBottom="8dp"/>
 
     <!-- Год выпуска -->
@@ -56,7 +55,7 @@
         android:layout_height="wrap_content"
         android:text="Year"
         android:textSize="16sp"
-        android:textColor="@android:color/darker_gray"
+        android:textColor="#888888"
         android:layout_marginBottom="8dp"/>
 
     <!-- Тип топлива -->
@@ -66,7 +65,7 @@
         android:layout_height="wrap_content"
         android:text="Fuel Type"
         android:textSize="16sp"
-        android:textColor="@android:color/darker_gray"
+        android:textColor="#888888"
         android:layout_marginBottom="8dp"/>
 
     <!-- Цвет автомобиля -->
@@ -76,7 +75,89 @@
         android:layout_height="wrap_content"
         android:text="Color"
         android:textSize="16sp"
-        android:textColor="@android:color/darker_gray"
-        android:layout_marginBottom="12dp"/>
+        android:textColor="#888888"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Строка "Mileage" над полем ввода пробега -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Mileage"
+        android:textSize="16sp"
+        android:textColor="#888888"
+        android:layout_marginTop="1dp" />
+
+    <!-- Поле ввода пробега -->
+    <EditText
+        android:id="@+id/carMileage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter mileage"
+        android:textSize="16sp"
+        android:textColor="#333333"
+        android:background="@drawable/edittext_style"
+        android:layout_marginBottom="16dp"
+        android:inputType="number"
+        android:focusable="true"
+        android:focusableInTouchMode="true"/>
+
+    <!-- Кнопка сохранения пробега -->
+    <Button
+        android:id="@+id/saveMileageButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Save Mileage"
+        android:textColor="#ffffff"
+        android:background="@color/colorPrimary"
+        android:textSize="16sp"
+        android:layout_marginBottom="20dp"
+        android:enabled="false"/>
+
+    <!-- Контейнер для действий -->
+    <LinearLayout
+        android:id="@+id/actionsBlock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:padding="16dp"
+        android:layout_gravity="center">
+
+        <!-- Опция действия 1 -->
+        <TextView
+            android:id="@+id/actionEdit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Edit"
+            android:padding="8dp"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            android:clickable="true"
+            android:background="?android:attr/selectableItemBackground"/>
+
+        <!-- Опция действия 2 -->
+        <TextView
+            android:id="@+id/actionOption2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Action 2"
+            android:padding="8dp"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            android:clickable="true"
+            android:background="?android:attr/selectableItemBackground"/>
+
+        <!-- Опция действия 3 -->
+        <TextView
+            android:id="@+id/actionOption3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Action 3"
+            android:padding="8dp"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            android:clickable="true"
+            android:background="?android:attr/selectableItemBackground"/>
+    </LinearLayout>
 
 </LinearLayout>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Фон EditText -->
+    <solid android:color="#f0f0f0"/> <!-- светло-серый фон -->
+
+    <!-- Рамка (граница) -->
+    <stroke
+        android:color="#dcdcdc"
+        android:width="1dp"/>
+
+    <!-- Закругленные углы -->
+    <corners android:radius="8dp"/>
+
+    <!-- Эффект при фокусе (когда поле активно) -->
+    <selector>
+        <item android:state_focused="true">
+            <shape>
+                <solid android:color="#ffffff"/>
+                <stroke
+                    android:color="#4CAF50"
+                android:width="2dp"/>
+                <corners android:radius="8dp"/>
+            </shape>
+        </item>
+        <item>
+            <shape>
+                <solid android:color="#f0f0f0"/> <!-- обычный фон -->
+                <stroke
+                    android:color="#dcdcdc"
+                android:width="1dp"/>
+                <corners android:radius="8dp"/>
+            </shape>
+        </item>
+    </selector>
+</shape>

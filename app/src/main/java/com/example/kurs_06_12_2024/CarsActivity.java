@@ -2,11 +2,17 @@ package com.example.kurs_06_12_2024;
 
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -37,6 +43,9 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
 
     private HashMap<String, String[]> carModels;
 
+    private ImageView actionsBlock; // Блок для отображения действий
+    private boolean isActionsVisible = false; // Флаг для отслеживания видимости блока
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,6 +66,9 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
         loadCarsFromFirestore();
 
         addCarButton.setOnClickListener(v -> showAddCarDialog());
+
+        // Инициализация блока действий
+        actionsBlock = findViewById(R.id.actionsBlock); // Этот элемент будет скрываться/появляться
     }
 
     private void initCarData() {
@@ -160,13 +172,27 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
         int logoResId = getLogoResId(brand);
         Car newCar = new Car(brand, model, mileage, year, fuelType, color, logoResId);
 
+        // Добавляем автомобиль в коллекцию и получаем ID документа
         carsCollection.add(newCar)
                 .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(this, "Car added successfully!", Toast.LENGTH_SHORT).show();
-                    loadCarsFromFirestore();
+                    // Получаем ID сгенерированного документа
+                    String carId = documentReference.getId();
+
+                    // Обновляем объект Car с полученным ID
+                    newCar.setId(carId);
+
+                    // Теперь можно сохранить обновленный объект с ID, если нужно обновить данные
+                    // Например, обновить информацию о автомобиле в Firestore
+                    carsCollection.document(carId).set(newCar) // Можно использовать set вместо add, если нужно гарантировать ID
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(this, "Car added successfully!", Toast.LENGTH_SHORT).show();
+                                loadCarsFromFirestore();
+                            })
+                            .addOnFailureListener(e -> Toast.makeText(this, "Error adding car: " + e.getMessage(), Toast.LENGTH_SHORT).show());
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Error adding car: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
+
 
     private void loadCarsFromFirestore() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -175,8 +201,9 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
 
         carsCollection.get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
-                    carList.clear();
+                    carList.clear(); // Очищаем старые данные
                     for (DocumentSnapshot document : queryDocumentSnapshots) {
+                        String id = document.getString("id");
                         String brand = document.getString("brand");
                         String model = document.getString("model");
                         String mileage = document.getString("mileage");
@@ -184,14 +211,17 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
                         String fuelType = document.getString("fuelType");
                         String color = document.getString("color");
 
-                        int logoResId = getLogoResId(brand);
-                        Car car = new Car(brand, model, mileage, year, fuelType, color, logoResId);
-                        carList.add(car);
+                        int logoResId = getLogoResId(brand);  // Получаем логотип по марке
+                        Car car = new Car(id, brand, model, mileage, year, fuelType, color, logoResId);
+                        carList.add(car); // Добавляем в список
                     }
-                    carsAdapter.notifyDataSetChanged();
+                    carsAdapter.notifyDataSetChanged();  // Обновляем адаптер, чтобы отобразить изменения
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Error loading cars: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
+
+
+
 
     private int getLogoResId(String brand) {
         switch (brand) {
@@ -204,28 +234,129 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
 
     @Override
     public void onCarClick(Car car) {
+        // Инфлейтим разметку для диалога
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_car_info, null);
+
+        // Находим все элементы внутри диалога
+        ImageView logoImageView = dialogView.findViewById(R.id.carLogoInDialog);  // Логотип
+        EditText mileageEditText = dialogView.findViewById(R.id.carMileage);
         TextView brandTextView = dialogView.findViewById(R.id.carBrand);
         TextView modelTextView = dialogView.findViewById(R.id.carModel);
-        TextView mileageTextView = dialogView.findViewById(R.id.carMileage);
         TextView yearTextView = dialogView.findViewById(R.id.carYear);
         TextView fuelTypeTextView = dialogView.findViewById(R.id.carFuelType);
         TextView colorTextView = dialogView.findViewById(R.id.carColor);
-        ImageView logoImageView = dialogView.findViewById(R.id.carLogo);
+        Button saveMileageButton = dialogView.findViewById(R.id.saveMileageButton);
 
+        // Устанавливаем данные для автомобиля
         brandTextView.setText(car.getBrand());
         modelTextView.setText(car.getModel());
-        mileageTextView.setText(car.getMileage());
+        mileageEditText.setText(car.getMileage());
         yearTextView.setText(car.getYear());
         fuelTypeTextView.setText(car.getFuelType());
         colorTextView.setText(car.getColor());
+
+        // Устанавливаем логотип автомобиля
         logoImageView.setImageResource(car.getLogoResId());
 
+        // Разрешаем пользователю редактировать пробег сразу
+        mileageEditText.setFocusable(true);  // Даем возможность редактировать
+        mileageEditText.setFocusableInTouchMode(true);  // Обеспечиваем фокусировку на поле
+
+        // Обработчик для изменения пробега
+        mileageEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int start, int count, int after) {
+                // Не требуется
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int start, int before, int count) {
+                // Если пробег изменился, включаем кнопку "Сохранить пробег"
+                if (!charSequence.toString().equals(car.getMileage())) {
+                    saveMileageButton.setEnabled(true);
+                } else {
+                    saveMileageButton.setEnabled(false);
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                // Не требуется
+            }
+        });
+
+        // Обработчик нажатия на кнопку "Сохранить пробег"
+        saveMileageButton.setOnClickListener(v -> {
+            String updatedMileage = mileageEditText.getText().toString();
+            if (!updatedMileage.isEmpty() && !updatedMileage.equals(car.getMileage())) {
+                car.setMileage(updatedMileage);  // Обновляем пробег в объекте
+
+                // Сохраняем обновленный пробег в Firestore
+                saveUpdatedMileageToFirestore(car);
+
+                // Отключаем кнопку после сохранения
+                saveMileageButton.setEnabled(false);
+            }
+        });
+
+        // Создаем и показываем диалог
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Car Information")
-                .setView(dialogView)
+                .setView(dialogView) // Устанавливаем инфлейтую разметку
                 .setPositiveButton("Close", null)
                 .create()
                 .show();
+    }
+
+
+
+
+
+
+
+    private void saveUpdatedMileageToFirestore(Car car) {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        CollectionReference carsCollection = db.collection("users").document(userId).collection("cars");
+
+        // Получаем ID машины и обновляем пробег
+        String carId = car.getId();
+        if (carId != null) {
+            carsCollection.document(carId) // Используем правильный ID
+                    .update("mileage", car.getMileage()) // Обновляем поле пробега
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(CarsActivity.this, "Пробег обновлен успешно!", Toast.LENGTH_SHORT).show();
+                        loadCarsFromFirestore(); // Перезагружаем данные после обновления
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(CarsActivity.this, "Ошибка при обновлении пробега: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        } else {
+            // Обработайте случай, если ID машины отсутствует
+            Toast.makeText(CarsActivity.this, "Ошибка: ID автомобиля не найден.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+
+
+    private void toggleActionsBlockVisibility() {
+        if (isActionsVisible) {
+            fadeOutActionsBlock();
+        } else {
+            fadeInActionsBlock();
+        }
+    }
+
+    private void fadeInActionsBlock() {
+        actionsBlock.setVisibility(View.VISIBLE);
+        Animation fadeIn = AnimationUtils.loadAnimation(this, android.R.anim.fade_in);
+        actionsBlock.startAnimation(fadeIn);
+        isActionsVisible = true;
+    }
+
+    private void fadeOutActionsBlock() {
+        Animation fadeOut = AnimationUtils.loadAnimation(this, android.R.anim.fade_out);
+        actionsBlock.startAnimation(fadeOut);
+        actionsBlock.setVisibility(View.GONE);
+        isActionsVisible = false;
     }
 }
