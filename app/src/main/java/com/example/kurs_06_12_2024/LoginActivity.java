@@ -6,6 +6,7 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -35,9 +36,11 @@ public class LoginActivity extends AppCompatActivity {
     private EditText emailEditText, passwordEditText;
     private Button loginButton, googleSignInButton;
     private TextView registerTextView;
+    private ImageView passwordVisibilityToggle; // Кнопка для переключения видимости пароля
     private FirebaseAuth mAuth;
     private GoogleSignInClient mGoogleSignInClient;
     private FirebaseFirestore db;
+    private boolean isPasswordVisible = false; // Флаг для видимости пароля
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +52,8 @@ public class LoginActivity extends AppCompatActivity {
         loginButton = findViewById(R.id.loginButton);
         googleSignInButton = findViewById(R.id.googleSignInButton);
         registerTextView = findViewById(R.id.registerTextView);
+        passwordVisibilityToggle = findViewById(R.id.passwordVisibilityToggle); // Получаем ссылку на кнопку
+
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
@@ -84,6 +89,14 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 goToRegister();
+            }
+        });
+
+        // Добавляем обработчик нажатия на кнопку для видимости пароля
+        passwordVisibilityToggle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                togglePasswordVisibility();
             }
         });
     }
@@ -186,5 +199,17 @@ public class LoginActivity extends AppCompatActivity {
     public void goToRegister() {
         startActivity(new Intent(LoginActivity.this, RegisterActivity.class));
         finish();
+    }
+
+    // Метод для переключения видимости пароля
+    private void togglePasswordVisibility() {
+        if (isPasswordVisible) {
+            passwordEditText.setInputType(129); // Скрыть пароль
+            passwordVisibilityToggle.setImageResource(R.drawable.ic_eye); // Изменить иконку
+        } else {
+            passwordEditText.setInputType(1); // Показать пароль
+            passwordVisibilityToggle.setImageResource(R.drawable.ic_eye); // Изменить иконку
+        }
+        isPasswordVisible = !isPasswordVisible;
     }
 }

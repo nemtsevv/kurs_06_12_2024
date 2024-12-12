@@ -6,6 +6,7 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -26,6 +27,7 @@ public class RegisterActivity extends AppCompatActivity {
     private Button registerButton;
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
+    private boolean isPasswordVisible = false; // Флаг для видимости пароля
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,28 +40,54 @@ public class RegisterActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
+        // Обработчик для регистрации пользователя
         registerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 registerUser();
             }
         });
+
+        // Обработчик для кнопки переключения видимости пароля
+        ImageView passwordVisibilityToggle = findViewById(R.id.passwordVisibilityToggle);
+        passwordVisibilityToggle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                togglePasswordVisibility();
+            }
+        });
     }
 
+    // Метод для регистрации пользователя
     private void registerUser() {
         String email = emailEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
 
+        // Проверка, что email не пустой
         if (TextUtils.isEmpty(email)) {
             emailEditText.setError("Email is required");
             return;
         }
 
+        // Проверка на валидность email
+        if (!isValidEmail(email)) {
+            emailEditText.setError("Please enter a valid email address");
+            return;
+        }
+
+        // Проверка, что пароль не пустой
         if (TextUtils.isEmpty(password)) {
             passwordEditText.setError("Password is required");
             return;
         }
 
+        // Проверка на валидность пароля
+        if (!isValidPassword(password)) {
+            passwordEditText.setError("Password must be at least 6 characters long and contain at least one digit and one uppercase letter");
+            return;
+        }
+
+        // Регистрация пользователя в Firebase
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
@@ -74,13 +102,13 @@ public class RegisterActivity extends AppCompatActivity {
                             finish();
                         } else {
                             // Ошибка регистрации
-                            Toast.makeText(RegisterActivity.this, "Registration failed.",
-                                    Toast.LENGTH_SHORT).show();
+                            Toast.makeText(RegisterActivity.this, "Registration failed.", Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
     }
 
+    // Метод для сохранения данных пользователя в Firestore
     private void saveUserData(String userId, String email) {
         Map<String, Object> user = new HashMap<>();
         user.put("email", email);
@@ -101,6 +129,43 @@ public class RegisterActivity extends AppCompatActivity {
                 });
     }
 
+    // Метод для проверки формата email
+    public boolean isValidEmail(String email) {
+        String emailPattern = "[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,4}";
+        return email.matches(emailPattern);
+    }
+
+    // Метод для проверки пароля
+    public boolean isValidPassword(String password) {
+        // Проверка на длину пароля
+        if (password.length() < 8) {
+            return false;
+        }
+        // Проверка на наличие хотя бы одной цифры и одной заглавной буквы
+        boolean hasDigit = false;
+        boolean hasUpperCase = false;
+        for (char c : password.toCharArray()) {
+            if (Character.isDigit(c)) {
+                hasDigit = true;
+            }
+            if (Character.isUpperCase(c)) {
+                hasUpperCase = true;
+            }
+        }
+        return hasDigit && hasUpperCase;
+    }
+
+    // Метод для переключения видимости пароля
+    private void togglePasswordVisibility() {
+        if (isPasswordVisible) {
+            passwordEditText.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());
+        } else {
+            passwordEditText.setTransformationMethod(android.text.method.HideReturnsTransformationMethod.getInstance());
+        }
+        isPasswordVisible = !isPasswordVisible; // Меняем состояние
+    }
+
+    // Метод для перехода в экран входа
     public void goToLogin(View view) {
         startActivity(new Intent(RegisterActivity.this, LoginActivity.class));
         finish();
