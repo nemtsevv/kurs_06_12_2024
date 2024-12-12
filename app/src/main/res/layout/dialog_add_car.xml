@@ -1,27 +1,69 @@
-<!-- dialog_add_car.xml -->
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="#ffffff"
+    android:weightSum="1">
 
-    <!-- Spinner для выбора марки авто -->
+    <!-- Spinner для выбора марки -->
     <Spinner
         android:id="@+id/spinnerCarBrand"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/spinner_background"
+        android:padding="10dp" />
 
-    <!-- Spinner для выбора модели авто -->
+    <!-- Spinner для выбора модели -->
     <Spinner
         android:id="@+id/spinnerCarModel"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/spinner_background"
+        android:padding="10dp" />
 
-    <!-- EditText для ввода пробега -->
+    <!-- Spinner для выбора года выпуска -->
+    <Spinner
+        android:id="@+id/spinnerYear"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/spinner_background"
+        android:padding="10dp" />
+
+    <!-- Spinner для выбора типа топлива -->
+    <Spinner
+        android:id="@+id/spinnerFuelType"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/spinner_background"
+        android:padding="10dp" />
+
+    <!-- Spinner для выбора цвета -->
+    <Spinner
+        android:id="@+id/spinnerCarColor"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/spinner_background"
+        android:padding="10dp" />
+
+    <!-- Поле для ввода пробега -->
     <EditText
         android:id="@+id/editTextMileage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Enter mileage"
-        android:inputType="number" />
+        android:hint="Mileage (km)"
+        android:inputType="number"
+        android:layout_marginBottom="12dp"
+        android:padding="12dp"
+        android:background="@drawable/edit_text_background"
+        android:textColor="#333333"
+        android:textSize="16sp" />
+
+
 </LinearLayout>

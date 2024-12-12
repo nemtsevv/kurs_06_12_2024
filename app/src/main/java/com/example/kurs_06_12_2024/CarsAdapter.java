@@ -14,9 +14,11 @@ import java.util.List;
 public class CarsAdapter extends RecyclerView.Adapter<CarsAdapter.CarViewHolder> {
 
     private List<Car> carList;
+    private OnCarClickListener onCarClickListener;
 
-    public CarsAdapter(List<Car> carList) {
+    public CarsAdapter(List<Car> carList, OnCarClickListener onCarClickListener) {
         this.carList = carList;
+        this.onCarClickListener = onCarClickListener;
     }
 
     @NonNull
@@ -42,6 +44,9 @@ public class CarsAdapter extends RecyclerView.Adapter<CarsAdapter.CarViewHolder>
 
         // Дополнительные стили для выделения элемента (например, изменение шрифта, цвета и т.д.)
         holder.itemView.setBackgroundResource(R.drawable.item_car_background); // Фон с закругленными углами
+
+        // Обработка клика по элементу
+        holder.itemView.setOnClickListener(v -> onCarClickListener.onCarClick(car));
     }
 
     @Override
@@ -62,5 +67,10 @@ public class CarsAdapter extends RecyclerView.Adapter<CarsAdapter.CarViewHolder>
             mileageTextView = itemView.findViewById(R.id.carMileage);
             logoImageView = itemView.findViewById(R.id.carLogo);
         }
+    }
+
+    // Интерфейс для обработки клика на автомобиле
+    public interface OnCarClickListener {
+        void onCarClick(Car car);
     }
 }
