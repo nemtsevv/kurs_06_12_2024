@@ -1,18 +1,14 @@
 package com.example.kurs_06_12_2024;
 
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -26,7 +22,6 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,9 +37,6 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
     private List<Car> carList = new ArrayList<>();
 
     private HashMap<String, String[]> carModels;
-
-    private ImageView actionsBlock; // Блок для отображения действий
-    private boolean isActionsVisible = false; // Флаг для отслеживания видимости блока
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,9 +58,6 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
         loadCarsFromFirestore();
 
         addCarButton.setOnClickListener(v -> showAddCarDialog());
-
-        // Инициализация блока действий
-        actionsBlock = findViewById(R.id.actionsBlock); // Этот элемент будет скрываться/появляться
     }
 
     private void initCarData() {
@@ -193,7 +182,6 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
                 .addOnFailureListener(e -> Toast.makeText(this, "Error adding car: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
-
     private void loadCarsFromFirestore() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -220,9 +208,6 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
                 .addOnFailureListener(e -> Toast.makeText(this, "Error loading cars: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
-
-
-
     private int getLogoResId(String brand) {
         switch (brand) {
             case "Ford": return R.drawable.ford_logo;
@@ -246,6 +231,10 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
         TextView fuelTypeTextView = dialogView.findViewById(R.id.carFuelType);
         TextView colorTextView = dialogView.findViewById(R.id.carColor);
         Button saveMileageButton = dialogView.findViewById(R.id.saveMileageButton);
+
+        // Добавление кнопки для действий с автомобилем
+        ImageButton customButton = dialogView.findViewById(R.id.customButton);
+        customButton.setOnClickListener(v -> showActionDialog(car)); // При клике на customButton показываем диалог действий
 
         // Устанавливаем данные для автомобиля
         brandTextView.setText(car.getBrand());
@@ -308,11 +297,26 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
                 .show();
     }
 
-
-
-
-
-
+    private void showActionDialog(Car car) {
+        // Диалог для выбора действия
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select Action")
+                .setItems(new CharSequence[]{"Action 1", "Action 2", "Action 3"}, (dialog, which) -> {
+                    switch (which) {
+                        case 0:
+                            Toast.makeText(this, "Action 1 for " + car.getModel(), Toast.LENGTH_SHORT).show();
+                            break;
+                        case 1:
+                            Toast.makeText(this, "Action 2 for " + car.getModel(), Toast.LENGTH_SHORT).show();
+                            break;
+                        case 2:
+                            Toast.makeText(this, "Action 3 for " + car.getModel(), Toast.LENGTH_SHORT).show();
+                            break;
+                    }
+                })
+                .create()
+                .show();
+    }
 
     private void saveUpdatedMileageToFirestore(Car car) {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -333,30 +337,5 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
             // Обработайте случай, если ID машины отсутствует
             Toast.makeText(CarsActivity.this, "Ошибка: ID автомобиля не найден.", Toast.LENGTH_SHORT).show();
         }
-    }
-
-
-
-
-    private void toggleActionsBlockVisibility() {
-        if (isActionsVisible) {
-            fadeOutActionsBlock();
-        } else {
-            fadeInActionsBlock();
-        }
-    }
-
-    private void fadeInActionsBlock() {
-        actionsBlock.setVisibility(View.VISIBLE);
-        Animation fadeIn = AnimationUtils.loadAnimation(this, android.R.anim.fade_in);
-        actionsBlock.startAnimation(fadeIn);
-        isActionsVisible = true;
-    }
-
-    private void fadeOutActionsBlock() {
-        Animation fadeOut = AnimationUtils.loadAnimation(this, android.R.anim.fade_out);
-        actionsBlock.startAnimation(fadeOut);
-        actionsBlock.setVisibility(View.GONE);
-        isActionsVisible = false;
     }
 }

@@ -5,17 +5,18 @@
     android:orientation="vertical"
     android:padding="20dp"
     android:background="@android:color/white">
-
-    <!-- Кнопка закрытия (в виде картинки) -->
-    <ImageView
-        android:id="@+id/customCloseButton"
+    <!-- Кнопка с изображением -->
+    <ImageButton
+        android:id="@+id/customButton"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:layout_gravity="end"
         android:src="@drawable/ic_custom_button"
-        android:contentDescription="Close Button"
-        android:layout_marginBottom="12dp"
-        android:tint="@android:color/black"/>
+        android:contentDescription="Custom Button"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:layout_gravity="end"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="20dp" />
+
 
     <!-- Логотип автомобиля -->
     <ImageView
@@ -112,52 +113,5 @@
         android:textSize="16sp"
         android:layout_marginBottom="20dp"
         android:enabled="false"/>
-
-    <!-- Контейнер для действий -->
-    <LinearLayout
-        android:id="@+id/actionsBlock"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:visibility="gone"
-        android:padding="16dp"
-        android:layout_gravity="center">
-
-        <!-- Опция действия 1 -->
-        <TextView
-            android:id="@+id/actionEdit"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Edit"
-            android:padding="8dp"
-            android:textColor="@android:color/black"
-            android:textSize="16sp"
-            android:clickable="true"
-            android:background="?android:attr/selectableItemBackground"/>
-
-        <!-- Опция действия 2 -->
-        <TextView
-            android:id="@+id/actionOption2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Action 2"
-            android:padding="8dp"
-            android:textColor="@android:color/black"
-            android:textSize="16sp"
-            android:clickable="true"
-            android:background="?android:attr/selectableItemBackground"/>
-
-        <!-- Опция действия 3 -->
-        <TextView
-            android:id="@+id/actionOption3"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Action 3"
-            android:padding="8dp"
-            android:textColor="@android:color/black"
-            android:textSize="16sp"
-            android:clickable="true"
-            android:background="?android:attr/selectableItemBackground"/>
-    </LinearLayout>
 
 </LinearLayout>
