@@ -4,14 +4,15 @@ public class Car {
     private String id;
     private String brand;
     private String model;
-    private String mileage;
+    private int mileage;  // Текущий пробег автомобиля (в целочисленном формате)
     private String year;
     private String fuelType;
     private String color;
     private int logoResId;
+    private int estimatedMileage;  // Новое поле для хранения предполагаемого пробега
 
     // Конструктор, который принимает все необходимые параметры
-    public Car(String brand, String model, String mileage, String year, String fuelType, String color, int logoResId) {
+    public Car(String brand, String model, int mileage, String year, String fuelType, String color, int logoResId, int estimatedMileage) {
         this.brand = brand;
         this.model = model;
         this.mileage = mileage;
@@ -19,10 +20,11 @@ public class Car {
         this.fuelType = fuelType;
         this.color = color;
         this.logoResId = logoResId;
+        this.estimatedMileage = mileage;  // Устанавливаем начальное значение estimatedMileage равным текущему пробегу
     }
 
     // Конструктор с ID, который может использоваться для получения данных из Firestore
-    public Car(String id, String brand, String model, String mileage, String year, String fuelType, String color, int logoResId) {
+    public Car(String id, String brand, String model, int mileage, String year, String fuelType, String color, int logoResId, int estimatedMileage) {
         this.id = id;
         this.brand = brand;
         this.model = model;
@@ -31,10 +33,10 @@ public class Car {
         this.fuelType = fuelType;
         this.color = color;
         this.logoResId = logoResId;
+        this.estimatedMileage = estimatedMileage;  // Инициализируем предполагаемый пробег
     }
 
     // Геттеры и сеттеры для всех полей
-
     public String getId() {
         return id;
     }
@@ -59,11 +61,11 @@ public class Car {
         this.model = model;
     }
 
-    public String getMileage() {
+    public int getMileage() {
         return mileage;
     }
 
-    public void setMileage(String mileage) {
+    public void setMileage(int mileage) {
         this.mileage = mileage;
     }
 
@@ -98,5 +100,13 @@ public class Car {
     public void setLogoResId(int logoResId) {
         this.logoResId = logoResId;
     }
-}
 
+    // Новый геттер и сеттер для estimatedMileage
+    public int getEstimatedMileage() {
+        return estimatedMileage;
+    }
+
+    public void setEstimatedMileage(int estimatedMileage) {
+        this.estimatedMileage = estimatedMileage;
+    }
+}

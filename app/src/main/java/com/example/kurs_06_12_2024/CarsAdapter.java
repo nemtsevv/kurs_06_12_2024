@@ -37,12 +37,14 @@ public class CarsAdapter extends RecyclerView.Adapter<CarsAdapter.CarViewHolder>
         // Устанавливаем данные в элементы
         holder.brandTextView.setText(car.getBrand());
         holder.modelTextView.setText(car.getModel());
-        holder.mileageTextView.setText(car.getMileage());
+
+        // Преобразуем пробег в строку, если это нужно (например, если mileage — это int или double)
+        holder.mileageTextView.setText(String.valueOf(car.getMileage()));  // Преобразуем в строку
 
         // Устанавливаем изображение логотипа в зависимости от марки
         holder.logoImageView.setImageResource(car.getLogoResId());
 
-        // Дополнительные стили для выделения элемента (например, изменение шрифта, цвета и т.д.)
+        // Дополнительные стили для выделения элемента (например, изменение фона)
         holder.itemView.setBackgroundResource(R.drawable.item_car_background); // Фон с закругленными углами
 
         // Обработка клика по элементу

@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
@@ -159,20 +160,20 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
         CollectionReference carsCollection = db.collection("users").document(userId).collection("cars");
 
         int logoResId = getLogoResId(brand);
-        Car newCar = new Car(brand, model, mileage, year, fuelType, color, logoResId);
+        // Преобразуем пробег из строки в число
+        int mileageValue = Integer.parseInt(mileage);
 
-        // Добавляем автомобиль в коллекцию и получаем ID документа
+        // Инициализируем объект Car
+        Car newCar = new Car(brand, model, mileageValue, year, fuelType, color, logoResId, mileageValue);
+
+        // Добавляем новый автомобиль в коллекцию
         carsCollection.add(newCar)
                 .addOnSuccessListener(documentReference -> {
-                    // Получаем ID сгенерированного документа
                     String carId = documentReference.getId();
-
-                    // Обновляем объект Car с полученным ID
                     newCar.setId(carId);
 
-                    // Теперь можно сохранить обновленный объект с ID, если нужно обновить данные
-                    // Например, обновить информацию о автомобиле в Firestore
-                    carsCollection.document(carId).set(newCar) // Можно использовать set вместо add, если нужно гарантировать ID
+                    // Теперь можно сохранить объект Car с полученным ID
+                    carsCollection.document(carId).set(newCar)
                             .addOnSuccessListener(aVoid -> {
                                 Toast.makeText(this, "Car added successfully!", Toast.LENGTH_SHORT).show();
                                 loadCarsFromFirestore();
@@ -181,6 +182,7 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Error adding car: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
+
 
     private void loadCarsFromFirestore() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -194,19 +196,41 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
                         String id = document.getString("id");
                         String brand = document.getString("brand");
                         String model = document.getString("model");
-                        String mileage = document.getString("mileage");
+
+                        // Извлечение пробега с проверкой типа данных
+                        Object mileageObject = document.get("mileage");  // Получаем значение как Object
+                        int mileage = 0;  // Значение по умолчанию, если не удается получить корректное число
+
+                        // Если пробег это число (Long или Double)
+                        if (mileageObject instanceof Long) {
+                            mileage = ((Long) mileageObject).intValue();
+                        } else if (mileageObject instanceof Double) {
+                            mileage = ((Double) mileageObject).intValue();
+                        } else if (mileageObject instanceof String) {
+                            // Если пробег хранится как строка, пытаемся преобразовать
+                            try {
+                                mileage = Integer.parseInt((String) mileageObject);
+                            } catch (NumberFormatException e) {
+                                // Логируем ошибку, если пробег не может быть преобразован
+                                mileage = 0;
+                            }
+                        }
+
                         String year = document.getString("year");
                         String fuelType = document.getString("fuelType");
                         String color = document.getString("color");
 
                         int logoResId = getLogoResId(brand);  // Получаем логотип по марке
-                        Car car = new Car(id, brand, model, mileage, year, fuelType, color, logoResId);
+                        Car car = new Car(id, brand, model, mileage, year, fuelType, color, logoResId, mileage);
+
                         carList.add(car); // Добавляем в список
                     }
                     carsAdapter.notifyDataSetChanged();  // Обновляем адаптер, чтобы отобразить изменения
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Error loading cars: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
+
+
 
     private int getLogoResId(String brand) {
         switch (brand) {
@@ -239,7 +263,7 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
         // Устанавливаем данные для автомобиля
         brandTextView.setText(car.getBrand());
         modelTextView.setText(car.getModel());
-        mileageEditText.setText(car.getMileage());
+        mileageEditText.setText(String.valueOf(car.getMileage()));
         yearTextView.setText(car.getYear());
         fuelTypeTextView.setText(car.getFuelType());
         colorTextView.setText(car.getColor());
@@ -261,7 +285,7 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
             @Override
             public void onTextChanged(CharSequence charSequence, int start, int before, int count) {
                 // Если пробег изменился, включаем кнопку "Сохранить пробег"
-                if (!charSequence.toString().equals(car.getMileage())) {
+                if (!charSequence.toString().equals(String.valueOf(car.getMileage()))) {
                     saveMileageButton.setEnabled(true);
                 } else {
                     saveMileageButton.setEnabled(false);
@@ -277,8 +301,8 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
         // Обработчик нажатия на кнопку "Сохранить пробег"
         saveMileageButton.setOnClickListener(v -> {
             String updatedMileage = mileageEditText.getText().toString();
-            if (!updatedMileage.isEmpty() && !updatedMileage.equals(car.getMileage())) {
-                car.setMileage(updatedMileage);  // Обновляем пробег в объекте
+            if (!updatedMileage.isEmpty() && !updatedMileage.equals(String.valueOf(car.getMileage()))) {
+                car.setMileage(Integer.parseInt(updatedMileage));  // Обновляем пробег в объекте
 
                 // Сохраняем обновленный пробег в Firestore
                 saveUpdatedMileageToFirestore(car);
@@ -301,10 +325,10 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
         // Диалог для выбора действия
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Select Action")
-                .setItems(new CharSequence[]{"Action 1", "Action 2", "Action 3"}, (dialog, which) -> {
+                .setItems(new CharSequence[]{"Дневной пробег", "Action 2", "Action 3"}, (dialog, which) -> {
                     switch (which) {
                         case 0:
-                            Toast.makeText(this, "Action 1 for " + car.getModel(), Toast.LENGTH_SHORT).show();
+                            showDailyMileageDialog(car);
                             break;
                         case 1:
                             Toast.makeText(this, "Action 2 for " + car.getModel(), Toast.LENGTH_SHORT).show();
@@ -335,6 +359,51 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
                     .addOnFailureListener(e -> Toast.makeText(CarsActivity.this, "Ошибка при обновлении пробега: " + e.getMessage(), Toast.LENGTH_SHORT).show());
         } else {
             // Обработайте случай, если ID машины отсутствует
+            Toast.makeText(CarsActivity.this, "Ошибка: ID автомобиля не найден.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+    // Дневной пробег и метод обновления
+    private void showDailyMileageDialog(Car car) {
+        // Инфлейт диалоговое окно для ввода дневного пробега
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_daily_mileage, null);
+        EditText dailyMileageEditText = dialogView.findViewById(R.id.dailyMileageEditText);  // Поле для ввода километров
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Введите дневной пробег")
+                .setView(dialogView)
+                .setPositiveButton("Сохранить", (dialog, which) -> {
+                    String dailyMileageStr = dailyMileageEditText.getText().toString();
+                    if (!dailyMileageStr.isEmpty()) {
+                        int dailyMileage = Integer.parseInt(dailyMileageStr);
+                        updateCarDailyMileage(car, dailyMileage);  // Сохранить дневной пробег в Firestore
+                    } else {
+                        Toast.makeText(this, "Пожалуйста, введите значение", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Отмена", null);
+
+        builder.create().show();
+    }
+
+    private void updateCarDailyMileage(Car car, int dailyMileage) {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        CollectionReference carsCollection = db.collection("users").document(userId).collection("cars");
+
+        String carId = car.getId();
+        if (carId != null) {
+            // Обновляем дневной пробег и инкрементируем предполагаемый пробег
+            carsCollection.document(carId)
+                    .update("dailyMileage", dailyMileage,  // Сохраняем дневной пробег
+                            "estimatedMileage", FieldValue.increment(dailyMileage))  // Прибавляем дневной пробег к предполагаемому пробегу
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(CarsActivity.this, "Дневной пробег обновлен!", Toast.LENGTH_SHORT).show();
+                        loadCarsFromFirestore();  // Перезагружаем данные с учетом изменений
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(CarsActivity.this, "Ошибка при обновлении данных: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        } else {
             Toast.makeText(CarsActivity.this, "Ошибка: ID автомобиля не найден.", Toast.LENGTH_SHORT).show();
         }
     }
