@@ -1,5 +1,6 @@
 package com.example.kurs_06_12_2024;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -325,22 +326,67 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
         // Диалог для выбора действия
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Select Action")
-                .setItems(new CharSequence[]{"Дневной пробег", "Action 2", "Action 3"}, (dialog, which) -> {
+                .setItems(new CharSequence[]{"Удалить автомобиль", "Action 2"}, (dialog, which) -> {
                     switch (which) {
                         case 0:
-                            showDailyMileageDialog(car);
+                            showDeleteConfirmationDialog(car, dialog);  // Изменил тип параметра на DialogInterface
                             break;
                         case 1:
-                            Toast.makeText(this, "Action 2 for " + car.getModel(), Toast.LENGTH_SHORT).show();
-                            break;
-                        case 2:
-                            Toast.makeText(this, "Action 3 for " + car.getModel(), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, "Action 2 для " + car.getModel(), Toast.LENGTH_SHORT).show();
                             break;
                     }
                 })
                 .create()
                 .show();
     }
+
+    private void showDeleteConfirmationDialog(Car car, DialogInterface actionDialog) {  // Параметр теперь DialogInterface
+        // Подтверждение на удаление автомобиля
+        new AlertDialog.Builder(this)
+                .setTitle("Удалить автомобиль?")
+                .setMessage("Вы уверены, что хотите удалить этот автомобиль?")
+                .setPositiveButton("Да", (dialog, which) -> {
+                    // Удаляем автомобиль
+                    deleteCar(car);
+
+                    // Закрываем диалог "Удалить автомобиль"
+                    actionDialog.dismiss();  // Закрываем диалог с выбором действия
+                })
+                .setNegativeButton("Нет", null)
+                .show();
+    }
+
+    private void deleteCar(Car car) {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        CollectionReference carsCollection = db.collection("users").document(userId).collection("cars");
+
+        String carId = car.getId();
+        if (carId != null) {
+            // Удаляем автомобиль из базы данных
+            carsCollection.document(carId)
+                    .delete()
+                    .addOnSuccessListener(aVoid -> {
+                        // Находим позицию автомобиля в списке
+                        int position = carList.indexOf(car);
+
+                        // Удаляем автомобиль из списка
+                        carList.remove(car);
+
+                        // Уведомляем адаптер, что элемент был удален
+                        carsAdapter.notifyItemRemoved(position); // Уведомляем адаптер об удалении конкретного элемента
+
+                        Toast.makeText(CarsActivity.this, "Автомобиль удален успешно!", Toast.LENGTH_SHORT).show();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(CarsActivity.this, "Ошибка при удалении автомобиля: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
+        } else {
+            Toast.makeText(CarsActivity.this, "Ошибка: ID автомобиля не найден.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
 
     private void saveUpdatedMileageToFirestore(Car car) {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
