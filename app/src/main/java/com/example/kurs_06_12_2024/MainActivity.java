@@ -1,5 +1,8 @@
 package com.example.kurs_06_12_2024;
 
+import android.annotation.SuppressLint;
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
 import android.content.ComponentName;
@@ -13,12 +16,14 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -63,28 +68,13 @@ public class MainActivity extends AppCompatActivity {
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
         // Обработчик нажатия на кнопку "Выход"
-        logoutButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                signOut();
-            }
-        });
+        logoutButton.setOnClickListener(v -> signOut());
 
         // Обработчик нажатия на кнопку "Мои автомобили"
-        myCarsButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                openCarsActivity();
-            }
-        });
+        myCarsButton.setOnClickListener(v -> openCarsActivity());
 
         // Обработчик нажатия на кнопку "Мои календари"
-        myCalendarsButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                openCalendarsActivity();
-            }
-        });
+        myCalendarsButton.setOnClickListener(v -> openCalendarsActivity());
 
         // Загрузка календарей и планирование уведомлений
         loadCalendarsAndScheduleNotifications();
@@ -126,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
                         for (DocumentSnapshot calendarDoc : task.getResult()) {
                             MyCalendar calendar = calendarDoc.toObject(MyCalendar.class);
                             if (calendar != null) {
+                                Log.d("MainActivity", "Processing calendar: " + calendar.getCalendarName());
                                 // Планируем уведомления для каждого календаря
                                 scheduleNotificationsForUpcomingEvents(calendar);
                             }
@@ -165,12 +156,17 @@ public class MainActivity extends AppCompatActivity {
                                             String eventMessage = eventDoc.getString("eventDescription");
                                             String calendarName = calendar.getCalendarName();
 
+                                            Log.d("MainActivity", "Event found: " + eventMessage + " on " + eventDate);
+
                                             // Преобразуем строку в дату
                                             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                                             try {
                                                 Date eventDateObj = sdf.parse(eventDate);
                                                 if (eventDateObj != null) {
                                                     long eventTimeMillis = eventDateObj.getTime();
+
+                                                    // Уведомление сразу при входе в приложение (на событие)
+                                                    scheduleNotification(eventMessage, eventTimeMillis, eventMessage.hashCode());
 
                                                     // Уведомление за 24 часа до события
                                                     long oneDayBeforeMillis = eventTimeMillis - 24 * 60 * 60 * 1000;  // 24 часа до события
@@ -182,20 +178,29 @@ public class MainActivity extends AppCompatActivity {
                                                             "Календарь: " + calendarName + "\n" +
                                                             "Событие: " + eventMessage;
 
-                                                    // Планируем уведомление за 24 часа до события
-                                                    scheduleNotification(notificationMessage, oneDayBeforeMillis, 1);  // Уведомление за день
+                                                    // Проверяем, не запланировано ли уже уведомление за 24 часа
+                                                    if (oneDayBeforeMillis > System.currentTimeMillis()) {
+                                                        scheduleNotification(notificationMessage, oneDayBeforeMillis, eventMessage.hashCode() + 1);  // Уникальный ID
+                                                    }
 
-                                                    // Планируем уведомления каждые 3 часа до события
-                                                    for (long time = threeHoursBeforeMillis; time < eventTimeMillis; time += 3 * 60 * 60 * 1000) {
-                                                        scheduleNotification(notificationMessage, time, 2); // Уникальный ID
+                                                    // Проверка, не запланировано ли уведомление за 3 часа
+                                                    if (threeHoursBeforeMillis > System.currentTimeMillis()) {
+                                                        scheduleNotification(notificationMessage, threeHoursBeforeMillis, eventMessage.hashCode() + 2); // Уникальный ID
                                                     }
 
                                                     // Планируем уведомления в день события (каждые 3 часа)
-                                                    // Начнем с начала дня события (00:00) и будем отправлять до конца дня
                                                     long startOfEventDayMillis = eventTimeMillis - eventTimeMillis % (24 * 60 * 60 * 1000); // 00:00 того дня
                                                     long endOfEventDayMillis = startOfEventDayMillis + 24 * 60 * 60 * 1000; // Конец дня (23:59)
                                                     for (long time = startOfEventDayMillis; time < endOfEventDayMillis; time += 3 * 60 * 60 * 1000) {
-                                                        scheduleNotification(notificationMessage, time, 3);  // Уникальный ID
+                                                        scheduleNotification(notificationMessage, time, eventMessage.hashCode() + 3);  // Уникальный ID
+                                                    }
+
+                                                    // Уведомления за сегодня, если событие завтра
+                                                    if (eventTimeMillis - System.currentTimeMillis() <= 24 * 60 * 60 * 1000) {
+                                                        long startOfDayMillis = System.currentTimeMillis() - (System.currentTimeMillis() % (24 * 60 * 60 * 1000));  // начало сегодняшнего дня
+                                                        for (long time = startOfDayMillis; time < eventTimeMillis; time += 3 * 60 * 60 * 1000) {
+                                                            scheduleNotification(eventMessage, time, eventMessage.hashCode() + 4);
+                                                        }
                                                     }
                                                 }
                                             } catch (ParseException e) {
@@ -208,8 +213,9 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
-    // Метод для планирования уведомления
+    @SuppressLint("MissingPermission")
     private void scheduleNotification(String eventMessage, long triggerTimeMillis, int notificationId) {
+        // Используем JobScheduler
         JobScheduler jobScheduler = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
 
         // Логируем время, когда будет запланировано уведомление
@@ -223,18 +229,36 @@ public class MainActivity extends AppCompatActivity {
         bundle.putString("eventMessage", eventMessage);
         bundle.putInt("notificationId", notificationId);  // Уникальный ID для уведомлений
 
-        // Планируем задачу
+        // Планируем задачу с использованием JobScheduler
         JobInfo jobInfo = new JobInfo.Builder(notificationId, componentName)
                 .setMinimumLatency(triggerTimeMillis - System.currentTimeMillis())  // Задержка до выполнения задачи
                 .setOverrideDeadline(triggerTimeMillis - System.currentTimeMillis())  // Максимальная задержка
                 .setExtras(bundle)  // Передаем данные (например, сообщение)
                 .build();
 
-        // Запускаем задачу
+        // Запускаем задачу через JobScheduler
         if (jobScheduler != null) {
             jobScheduler.schedule(jobInfo);
         } else {
             Toast.makeText(this, "Ошибка при планировании уведомления", Toast.LENGTH_SHORT).show();
         }
+
+        // Создаем только одно уведомление с полным текстом
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "default")
+                .setSmallIcon(R.drawable.ic_notification)  // Укажите иконку уведомления
+                .setContentTitle("Напоминание о событии")
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(eventMessage))  // Только полный текст события
+                .setAutoCancel(true)  // Уведомление исчезает при нажатии
+                .setPriority(NotificationCompat.PRIORITY_HIGH)  // Высокий приоритет для уведомления
+                .setDefaults(Notification.DEFAULT_ALL);  // Все стандартные параметры (звук, вибрация и т.д.)
+
+        // Получаем NotificationManager
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+        notificationManager.notify(notificationId, builder.build());
     }
+
+
+
+
+
 }

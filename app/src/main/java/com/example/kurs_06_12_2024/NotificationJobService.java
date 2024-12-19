@@ -30,7 +30,7 @@ public class NotificationJobService extends JobService {
     private void showNotification(String eventMessage, int notificationId) {
         // Создаем PendingIntent (если нужно делать уведомление кликабельным)
         Intent intent = new Intent(this, MainActivity.class); // Вместо нового Activity, используем существующее
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
 
         // Создаем уведомление с использованием BigTextStyle для длинного текста
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "default")
@@ -45,20 +45,25 @@ public class NotificationJobService extends JobService {
                 .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_notification))  // Большая иконка
                 .setContentIntent(pendingIntent);  // Устанавливаем PendingIntent для открытия активности
 
-        // Отправляем уведомление
+        // Получаем NotificationManager
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        // Создание канала уведомлений для Android 8.0 и выше
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Для Android 8.0 и выше требуется канала уведомлений
             String channelId = "default";
-            NotificationChannel channel = new NotificationChannel(channelId, "Events", NotificationManager.IMPORTANCE_DEFAULT);
-            notificationManager.createNotificationChannel(channel);
+            NotificationChannel existingChannel = notificationManager.getNotificationChannel(channelId);
+
+            if (existingChannel == null) {
+                NotificationChannel channel = new NotificationChannel(channelId, "Events", NotificationManager.IMPORTANCE_DEFAULT);
+                notificationManager.createNotificationChannel(channel);
+            }
+
             builder.setChannelId(channelId);
         }
 
+        // Отправляем уведомление
         notificationManager.notify(notificationId, builder.build());
     }
-
-
 
     @Override
     public boolean onStopJob(JobParameters params) {

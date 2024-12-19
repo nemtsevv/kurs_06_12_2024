@@ -325,20 +325,29 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
     private void showActionDialog(Car car) {
         // Диалог для выбора действия
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Select Action")
-                .setItems(new CharSequence[]{"Удалить автомобиль", "Action 2"}, (dialog, which) -> {
+
+        // Массив с действиями
+        CharSequence[] actions = new CharSequence[]{
+                "Дневной пробег",  // Добавляем новое действие
+                "Удалить автомобиль"
+        };
+
+        builder.setTitle("Выберите действие")
+                .setItems(actions, (dialog, which) -> {
                     switch (which) {
-                        case 0:
-                            showDeleteConfirmationDialog(car, dialog);  // Изменил тип параметра на DialogInterface
+                        case 0: // Дневной пробег
+                            // При нажатии на "Дневной пробег", вызываем метод для изменения дневного пробега
+                            showDailyMileageDialog(car);
                             break;
-                        case 1:
-                            Toast.makeText(this, "Action 2 для " + car.getModel(), Toast.LENGTH_SHORT).show();
+                        case 1: // Удалить автомобиль
+                            showDeleteConfirmationDialog(car, dialog);  // Открываем диалог подтверждения удаления
                             break;
                     }
                 })
                 .create()
                 .show();
     }
+
 
     private void showDeleteConfirmationDialog(Car car, DialogInterface actionDialog) {  // Параметр теперь DialogInterface
         // Подтверждение на удаление автомобиля
@@ -433,24 +442,59 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
         builder.create().show();
     }
 
-    private void updateCarDailyMileage(Car car, int dailyMileage) {
+    private void updateCarDailyMileage(Car car, int newDailyMileage) {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         CollectionReference carsCollection = db.collection("users").document(userId).collection("cars");
 
         String carId = car.getId();
         if (carId != null) {
-            // Обновляем дневной пробег и инкрементируем предполагаемый пробег
-            carsCollection.document(carId)
-                    .update("dailyMileage", dailyMileage,  // Сохраняем дневной пробег
-                            "estimatedMileage", FieldValue.increment(dailyMileage))  // Прибавляем дневной пробег к предполагаемому пробегу
-                    .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(CarsActivity.this, "Дневной пробег обновлен!", Toast.LENGTH_SHORT).show();
-                        loadCarsFromFirestore();  // Перезагружаем данные с учетом изменений
+            // Получаем текущие данные о пробеге
+            carsCollection.document(carId).get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            // Получаем текущие значения
+                            Long currentEstimatedMileage = documentSnapshot.getLong("estimatedMileage");
+                            Long currentDailyMileage = documentSnapshot.getLong("dailyMileage");
+
+                            if (currentEstimatedMileage == null) {
+                                currentEstimatedMileage = 0L; // Если предполагаемый пробег не задан
+                            }
+                            if (currentDailyMileage == null) {
+                                currentDailyMileage = 0L; // Если дневной пробег не задан
+                            }
+
+                            // Если дневной пробег изменился, то вычисляем разницу и обновляем данные
+                            long difference = newDailyMileage - currentDailyMileage;
+
+                            // Если разница положительная, то добавляем её к предполагаемому пробегу
+                            if (difference != 0) {
+                                carsCollection.document(carId)
+                                        .update("dailyMileage", newDailyMileage, // Обновляем дневной пробег
+                                                "estimatedMileage", FieldValue.increment(difference)) // Добавляем разницу к предполагаемому пробегу
+                                        .addOnSuccessListener(aVoid -> {
+                                            Toast.makeText(CarsActivity.this, "Дневной пробег обновлен!", Toast.LENGTH_SHORT).show();
+                                            loadCarsFromFirestore();  // Перезагружаем данные с учетом изменений
+                                        })
+                                        .addOnFailureListener(e -> Toast.makeText(CarsActivity.this, "Ошибка при обновлении данных: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                            } else {
+                                // Если разница равна 0, то просто обновляем предполагаемый пробег на новый дневной пробег
+                                carsCollection.document(carId)
+                                        .update("dailyMileage", newDailyMileage, // Обновляем дневной пробег
+                                                "estimatedMileage", FieldValue.increment(newDailyMileage)) // Добавляем новый дневной пробег к предполагаемому
+                                        .addOnSuccessListener(aVoid -> {
+                                            Toast.makeText(CarsActivity.this, "Дневной пробег обновлен!", Toast.LENGTH_SHORT).show();
+                                            loadCarsFromFirestore();  // Перезагружаем данные с учетом изменений
+                                        })
+                                        .addOnFailureListener(e -> Toast.makeText(CarsActivity.this, "Ошибка при обновлении данных: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                            }
+                        }
                     })
-                    .addOnFailureListener(e -> Toast.makeText(CarsActivity.this, "Ошибка при обновлении данных: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                    .addOnFailureListener(e -> Toast.makeText(CarsActivity.this, "Ошибка при получении данных: " + e.getMessage(), Toast.LENGTH_SHORT).show());
         } else {
             Toast.makeText(CarsActivity.this, "Ошибка: ID автомобиля не найден.", Toast.LENGTH_SHORT).show();
         }
     }
+
+
 }
