@@ -120,10 +120,13 @@ public class CalendarsActivity extends AppCompatActivity {
                     if (task.isSuccessful()) {
                         calendarList.clear();
                         for (DocumentSnapshot document : task.getResult()) {
+                            String calendarId = document.getId();  // Получаем уникальный ID документа
                             String calendarName = document.getString("calendarName");
                             String carBrand = document.getString("carBrand");
                             String carModel = document.getString("carModel");
-                            calendarList.add(new MyCalendar(calendarName, carBrand, carModel));
+
+                            // Создаем MyCalendar с calendarId
+                            calendarList.add(new MyCalendar(calendarId, calendarName, carBrand, carModel));
                         }
                         calendarAdapter.notifyDataSetChanged();
                     } else {
@@ -131,6 +134,7 @@ public class CalendarsActivity extends AppCompatActivity {
                     }
                 });
     }
+
 
     private void saveCalendar() {
         String calendarName = calendarNameEditText.getText().toString();
@@ -146,12 +150,15 @@ public class CalendarsActivity extends AppCompatActivity {
         }
 
         String userId = mAuth.getCurrentUser().getUid();
-
         String[] carDetails = selectedCar.split(" ");
         String carBrand = carDetails[0];
         String carModel = carDetails[1];
 
-        MyCalendar calendar = new MyCalendar(calendarName, carBrand, carModel);
+        // Генерируем уникальный calendarId
+        String calendarId = db.collection("users").document(userId).collection("calendars").document().getId();
+
+        // Создаем объект MyCalendar с calendarId
+        MyCalendar calendar = new MyCalendar(calendarId, calendarName, carBrand, carModel);
 
         db.collection("users").document(userId).collection("calendars")
                 .add(calendar)
@@ -165,6 +172,7 @@ public class CalendarsActivity extends AppCompatActivity {
                     Toast.makeText(CalendarsActivity.this, "Error adding calendar: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
+
 
     public void onShowCalendarClick(View view) {
         Log.d(TAG, "onShowCalendarClick called");

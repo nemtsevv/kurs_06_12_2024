@@ -34,10 +34,17 @@ android {
 }
 
 dependencies {
+
+    implementation("androidx.appcompat:appcompat:1.2.0")
+
+    implementation("androidx.work:work-runtime-ktx:2.7.1")
+    implementation("com.jakewharton.threetenabp:threetenabp:1.3.1")
+    implementation("com.google.guava:guava:31.1-android")
+
     // Firebase dependencies
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-auth:23.1.0")
-    implementation("com.google.firebase:firebase-firestore:25.1.1")
+   // implementation("com.google.firebase:firebase-firestore:25.1.1")
     implementation("com.google.android.gms:play-services-auth:21.2.0")
     implementation("com.google.android.gms:play-services-base:18.0.1")
 
