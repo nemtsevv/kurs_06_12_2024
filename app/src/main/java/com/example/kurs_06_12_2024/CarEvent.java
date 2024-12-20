@@ -20,7 +20,9 @@ public class CarEvent {
         this.eventCost = eventCost; // Инициализация стоимости
         this.eventMileage = eventMileage; // Инициализация пробега
     }
-
+    public CarEvent() {
+        // Firebase требует наличие конструктора без параметров
+    }
     // Геттеры и сеттеры
     public String getCalendarName() {
         return calendarName;

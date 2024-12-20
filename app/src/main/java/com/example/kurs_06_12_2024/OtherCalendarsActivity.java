@@ -4,8 +4,6 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -13,22 +11,24 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import org.threeten.bp.LocalDate;
-import org.threeten.bp.format.DateTimeFormatter;
+
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.prolificinteractive.materialcalendarview.CalendarDay;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
-
-import org.threeten.bp.LocalDate;
+import com.prolificinteractive.materialcalendarview.CalendarDay;
 
 import java.text.SimpleDateFormat;
-
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import org.threeten.bp.LocalDate;
+import org.threeten.bp.format.DateTimeFormatter;
 
 public class OtherCalendarsActivity extends AppCompatActivity {
 
@@ -39,6 +39,7 @@ public class OtherCalendarsActivity extends AppCompatActivity {
     private OtherCalendarsAdapter otherCalendarsAdapter;
     private List<MyCalendar> otherCalendarList;
     private Context context;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -99,7 +100,7 @@ public class OtherCalendarsActivity extends AppCompatActivity {
                         builder.setTitle("Выберите пользователя для обмена")
                                 .setItems(userList.toArray(new String[0]), (dialog, which) -> {
                                     String selectedUser = userList.get(which);
-                                    shareCalendarWithUser(selectedUser);
+                                    showCalendarListDialog(selectedUser);
                                 })
                                 .setNegativeButton("Отмена", null)
                                 .show();
@@ -109,8 +110,7 @@ public class OtherCalendarsActivity extends AppCompatActivity {
                 });
     }
 
-    private void shareCalendarWithUser(String userEmail) {
-        // Покажем пользователю список его календарей для выбора
+    private void showCalendarListDialog(String userEmail) {
         db.collection("users").document(mAuth.getCurrentUser().getUid()).collection("calendars")
                 .get()
                 .addOnCompleteListener(task -> {
@@ -124,7 +124,6 @@ public class OtherCalendarsActivity extends AppCompatActivity {
                             userCalendars.add(new MyCalendar(calendarId, calendarName, carBrand, carModel));
                         }
 
-                        // Создаем список имен календарей для отображения в диалоге
                         String[] calendarNames = new String[userCalendars.size()];
                         for (int i = 0; i < userCalendars.size(); i++) {
                             calendarNames[i] = userCalendars.get(i).getCalendarName();
@@ -151,12 +150,16 @@ public class OtherCalendarsActivity extends AppCompatActivity {
                         DocumentSnapshot userDoc = task.getResult().getDocuments().get(0);
                         String userId = userDoc.getId();
 
+                        // 1. Сохраняем календарь у получателя
                         db.collection("shared_calendars").document(userId).collection("calendars")
                                 .document(calendar.getCalendarId())
                                 .set(calendar)
                                 .addOnSuccessListener(aVoid -> {
                                     Log.d("OtherCalendarsActivity", "Календарь успешно поделён: " + calendar.getCalendarId());
                                     Toast.makeText(this, "Календарь успешно поделён", Toast.LENGTH_SHORT).show();
+
+                                    // 2. Копируем события в календарь получателя
+                                    copyEventsToSharedCalendar(userId, calendar);
                                 })
                                 .addOnFailureListener(e -> {
                                     Log.e("OtherCalendarsActivity", "Ошибка при обмене календарем", e);
@@ -170,49 +173,55 @@ public class OtherCalendarsActivity extends AppCompatActivity {
     }
 
 
-
-    private void saveEventToFirestore(MyCalendar calendar, String selectedDate, String selectedCategory, String selectedAction, double eventCost, double eventMileage) {
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-
-        if (userId == null) {
-            Toast.makeText(context, "Пользователь не авторизован", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        CarEvent event = new CarEvent(
-                calendar.getCalendarName(),
-                calendar.getCarBrand(),
-                calendar.getCarModel(),
-                selectedDate,
-                selectedCategory + ": " + selectedAction,
-                eventCost,
-                eventMileage
-        );
-
-        Log.d("OtherCalendarsActivity", "Сохраняем событие: " + event); // Лог события
-
-        db.collection("shared_calendars").document(userId).collection("calendars")
-                .whereEqualTo("calendarName", calendar.getCalendarName())
+    private void copyEventsToSharedCalendar(String userId, MyCalendar calendar) {
+        FirebaseFirestore.getInstance().collection("users")
+                .document(FirebaseAuth.getInstance().getCurrentUser().getUid()) // Это текущий пользователь, который делится календарем
+                .collection("calendars")
+                .document(calendar.getCalendarId()) // ID календаря, который делится
+                .collection("events")
                 .get()
                 .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && !task.getResult().isEmpty()) {
-                        DocumentSnapshot calendarDoc = task.getResult().getDocuments().get(0);
+                    if (task.isSuccessful()) {
+                        List<DocumentSnapshot> events = task.getResult().getDocuments();
+                        if (events.isEmpty()) {
+                            Log.d("OtherCalendarsActivity", "События не найдены в исходном календаре.");
+                        }
 
-                        db.collection("shared_calendars").document(userId).collection("calendars")
-                                .document(calendarDoc.getId())
-                                .collection("events")
-                                .add(event)
-                                .addOnSuccessListener(documentReference -> {
-                                    Toast.makeText(context, "Событие сохранено", Toast.LENGTH_SHORT).show();
-                                    Log.d("OtherCalendarsActivity", "Событие успешно сохранено: " + documentReference.getId());
-                                })
-                                .addOnFailureListener(e -> {
-                                    Toast.makeText(context, "Ошибка сохранения события", Toast.LENGTH_SHORT).show();
-                                    Log.e("OtherCalendarsActivity", "Ошибка сохранения события", e);
-                                });
+                        // Копируем каждое событие в календарь получателя
+                        for (DocumentSnapshot eventDoc : events) {
+                            CarEvent event = eventDoc.toObject(CarEvent.class);
+                            if (event != null) {
+                                Log.d("OtherCalendarsActivity", "Копируем событие: " + event.getEventDescription());
+
+                                // Добавляем событие в коллекцию events получателя с помощью Map
+                                FirebaseFirestore db = FirebaseFirestore.getInstance();
+                                CollectionReference eventsRef = db.collection("shared_calendars")
+                                        .document(userId)  // Пользователь, с которым делятся календарем
+                                        .collection("calendars")
+                                        .document(calendar.getCalendarId())  // ID календаря
+                                        .collection("events");
+
+                                Map<String, Object> eventData = new HashMap<>();
+                                eventData.put("calendarName", event.getCalendarName());
+                                eventData.put("carBrand", event.getCarBrand());
+                                eventData.put("carModel", event.getCarModel());
+                                eventData.put("eventDate", event.getEventDate());
+                                eventData.put("eventDescription", event.getEventDescription());
+                                eventData.put("eventCost", event.getEventCost());
+                                eventData.put("eventMileage", event.getEventMileage());
+
+                                // Записываем в Firestore
+                                eventsRef.add(eventData)
+                                        .addOnSuccessListener(documentReference -> {
+                                            Log.d("OtherCalendarsActivity", "Событие успешно скопировано: " + event.getEventDescription());
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Log.e("OtherCalendarsActivity", "Ошибка при копировании события", e);
+                                        });
+                            }
+                        }
                     } else {
-                        Log.d("OtherCalendarsActivity", "Календарь не найден для события");
+                        Log.e("OtherCalendarsActivity", "Ошибка при получении событий исходного календаря", task.getException());
                     }
                 });
     }
@@ -222,54 +231,38 @@ public class OtherCalendarsActivity extends AppCompatActivity {
 
 
 
+    public void loadEventsForCalendar(MyCalendar calendar, MaterialCalendarView materialCalendarView) {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-
-
-
-    private void loadEventsForCalendar(MyCalendar calendar, MaterialCalendarView materialCalendarView) {
-        String userId = mAuth.getCurrentUser().getUid();
-
+        // Загружаем события из коллекции shared_calendars
         db.collection("shared_calendars").document(userId).collection("calendars")
-                .whereEqualTo("calendarName", calendar.getCalendarName())
+                .document(calendar.getCalendarId()).collection("events")
                 .get()
                 .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && !task.getResult().isEmpty()) {
-                        DocumentSnapshot calendarDoc = task.getResult().getDocuments().get(0);
-                        db.collection("shared_calendars").document(userId).collection("calendars")
-                                .document(calendarDoc.getId())
-                                .collection("events")
-                                .get()
-                                .addOnCompleteListener(eventsTask -> {
-                                    if (eventsTask.isSuccessful()) {
-                                        List<DocumentSnapshot> events = eventsTask.getResult().getDocuments();
-                                        for (DocumentSnapshot event : events) {
-                                            String eventDate = event.getString("eventDate");
+                    if (task.isSuccessful()) {
+                        List<DocumentSnapshot> events = task.getResult().getDocuments();
+                        for (DocumentSnapshot event : events) {
+                            String eventDate = event.getString("eventDate");
 
-                                            try {
-                                                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-                                                LocalDate localDate = LocalDate.parse(eventDate, formatter);
+                            try {
+                                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                                LocalDate localDate = LocalDate.parse(eventDate, formatter);
 
-                                                // Используем LocalDate для CalendarDay
-                                                CalendarDay calendarDay = CalendarDay.from(localDate);
+                                CalendarDay calendarDay = CalendarDay.from(localDate);
+                                materialCalendarView.setDateSelected(calendarDay, true);
 
-                                                // Добавляем дату в календарь
-                                                materialCalendarView.setDateSelected(calendarDay, true);
+                                Drawable redCircle = getResources().getDrawable(R.drawable.event_circle);
+                                EventDecorator decorator = new EventDecorator(calendarDay, redCircle);
+                                materialCalendarView.addDecorator(decorator);
 
-                                                // Добавляем красный кружок
-                                                Drawable redCircle = getResources().getDrawable(R.drawable.event_circle);
-                                                EventDecorator decorator = new EventDecorator(calendarDay, redCircle);
-                                                materialCalendarView.addDecorator(decorator);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
 
-                                            } catch (Exception e) {
-                                                e.printStackTrace();
-                                            }
-                                        }
-
-                                        materialCalendarView.setOnDateChangedListener((widget, date, selected) -> {
-                                            showEventDetailsForDate(calendar, date, materialCalendarView);
-                                        });
-                                    }
-                                });
+                        materialCalendarView.setOnDateChangedListener((widget, date, selected) -> {
+                            showEventDetailsForDate(calendar, date, materialCalendarView);
+                        });
                     } else {
                         Toast.makeText(this, "Не удалось найти календарь", Toast.LENGTH_SHORT).show();
                     }
@@ -277,14 +270,10 @@ public class OtherCalendarsActivity extends AppCompatActivity {
     }
 
 
-
-
-
-
-
     private void showEventDetailsForDate(MyCalendar calendar, CalendarDay selectedDate, MaterialCalendarView materialCalendarView) {
         int year = selectedDate.getYear();
-        int month = selectedDate.getMonth() - 1; // Месяцы в Java Calendar начинаются с 0
+        int month = selectedDate.getMonth() - 1;
+        // Месяцы в Java Calendar начинаются с 0
         int day = selectedDate.getDay();
 
         Calendar calendarInstance = Calendar.getInstance();
@@ -316,11 +305,9 @@ public class OtherCalendarsActivity extends AppCompatActivity {
                         } else {
                             Toast.makeText(this, "Нет событий на эту дату", Toast.LENGTH_SHORT).show();
                         }
+                    } else {
+                        Toast.makeText(this, "Ошибка загрузки событий: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
     }
-
-
-
-
 }

@@ -9,6 +9,8 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
+
 import java.util.List;
 
 public class OtherCalendarsAdapter extends RecyclerView.Adapter<OtherCalendarsAdapter.CalendarViewHolder> {
@@ -35,12 +37,20 @@ public class OtherCalendarsAdapter extends RecyclerView.Adapter<OtherCalendarsAd
 
         holder.itemView.setOnClickListener(v -> {
             if (context instanceof AppCompatActivity) {
+                AppCompatActivity activity = (AppCompatActivity) context;
+
+                // Создаем MaterialCalendarView и передаем его в метод loadEventsForCalendar
+                MaterialCalendarView materialCalendarView = new MaterialCalendarView(context);
+
+                // Вызываем метод loadEventsForCalendar
+                ((OtherCalendarsActivity) activity).loadEventsForCalendar(calendar, materialCalendarView);
+
+                // Показываем календарный диалог или другое представление
                 CalendarDialogFragment dialogFragment = new CalendarDialogFragment(calendar);
-                dialogFragment.show(((AppCompatActivity) context).getSupportFragmentManager(), "CalendarDialog");
+                dialogFragment.show(activity.getSupportFragmentManager(), "CalendarDialog");
             }
         });
     }
-
 
     @Override
     public int getItemCount() {

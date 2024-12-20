@@ -2,7 +2,6 @@ package com.example.kurs_06_12_2024;
 
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,13 +18,13 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.prolificinteractive.materialcalendarview.CalendarDay;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 
-import org.threeten.bp.LocalDate;
-import org.threeten.bp.format.DateTimeFormatter;
-
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+
+import org.threeten.bp.LocalDate;
+import org.threeten.bp.format.DateTimeFormatter;
 
 public class CalendarDialogFragment extends DialogFragment {
 
@@ -42,66 +41,49 @@ public class CalendarDialogFragment extends DialogFragment {
         View view = inflater.inflate(R.layout.dialog_calendar, container, false);
         materialCalendarView = view.findViewById(R.id.calendarView);
 
-        loadEventsForCalendar(calendar);
+        loadEventsForCalendar();
 
         return view;
     }
 
-    private void loadEventsForCalendar(MyCalendar calendar) {
+    private void loadEventsForCalendar() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
         FirebaseFirestore.getInstance().collection("shared_calendars").document(userId).collection("calendars")
-                .whereEqualTo("calendarName", calendar.getCalendarName())
+                .document(calendar.getCalendarId()).collection("events")
                 .get()
                 .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && !task.getResult().isEmpty()) {
-                        DocumentSnapshot calendarDoc = task.getResult().getDocuments().get(0);
-                        Log.d("CalendarDialogFragment", "Calendar found: " + calendarDoc.getId());
-                        FirebaseFirestore.getInstance().collection("shared_calendars").document(userId).collection("calendars")
-                                .document(calendarDoc.getId())
-                                .collection("events")
-                                .get()
-                                .addOnCompleteListener(eventsTask -> {
-                                    if (eventsTask.isSuccessful()) {
-                                        List<DocumentSnapshot> events = eventsTask.getResult().getDocuments();
-                                        Log.d("CalendarDialogFragment", "Events loaded: " + events.size());
-                                        for (DocumentSnapshot event : events) {
-                                            String eventDate = event.getString("eventDate");
-                                            Log.d("CalendarDialogFragment", "Event date: " + eventDate);
+                    if (task.isSuccessful()) {
+                        List<DocumentSnapshot> events = task.getResult().getDocuments();
+                        for (DocumentSnapshot event : events) {
+                            String eventDate = event.getString("eventDate");
 
-                                            try {
-                                                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-                                                LocalDate localDate = LocalDate.parse(eventDate, formatter);
+                            try {
+                                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                                LocalDate localDate = LocalDate.parse(eventDate, formatter);
 
-                                                CalendarDay calendarDay = CalendarDay.from(localDate);
-                                                materialCalendarView.setDateSelected(calendarDay, true);
+                                CalendarDay calendarDay = CalendarDay.from(localDate);
+                                materialCalendarView.setDateSelected(calendarDay, true);
 
-                                                Drawable redCircle = getResources().getDrawable(R.drawable.event_circle);
-                                                EventDecorator decorator = new EventDecorator(calendarDay, redCircle);
-                                                materialCalendarView.addDecorator(decorator);
+                                Drawable redCircle = getResources().getDrawable(R.drawable.event_circle);
+                                EventDecorator decorator = new EventDecorator(calendarDay, redCircle);
+                                materialCalendarView.addDecorator(decorator);
 
-                                            } catch (Exception e) {
-                                                Log.e("CalendarDialogFragment", "Error parsing event date", e);
-                                            }
-                                        }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
 
-                                        materialCalendarView.setOnDateChangedListener((widget, date, selected) -> {
-                                            showEventDetailsForDate(calendar, date, materialCalendarView);
-                                        });
-                                    } else {
-                                        Log.d("CalendarDialogFragment", "Failed to load events: " + eventsTask.getException().getMessage());
-                                        Toast.makeText(getContext(), "Не удалось загрузить события", Toast.LENGTH_SHORT).show();
-                                    }
-                                });
+                        materialCalendarView.setOnDateChangedListener((widget, date, selected) -> {
+                            showEventDetailsForDate(date);
+                        });
                     } else {
-                        Log.d("CalendarDialogFragment", "No calendar found");
                         Toast.makeText(getContext(), "Не удалось найти календарь", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
-
-    private void showEventDetailsForDate(MyCalendar calendar, CalendarDay selectedDate, MaterialCalendarView materialCalendarView) {
+    private void showEventDetailsForDate(CalendarDay selectedDate) {
         int year = selectedDate.getYear();
         int month = selectedDate.getMonth() - 1; // Месяцы в Java Calendar начинаются с 0
         int day = selectedDate.getDay();
@@ -136,10 +118,8 @@ public class CalendarDialogFragment extends DialogFragment {
                             Toast.makeText(getContext(), "Нет событий на эту дату", Toast.LENGTH_SHORT).show();
                         }
                     } else {
-                        Log.d("CalendarDialogFragment", "Failed to load event details: " + task.getException().getMessage());
+                        Toast.makeText(getContext(), "Ошибка загрузки событий: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 }
-
-
