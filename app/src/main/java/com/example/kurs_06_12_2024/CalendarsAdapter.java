@@ -5,6 +5,7 @@ import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.PersistableBundle;
 import android.view.LayoutInflater;
@@ -69,7 +70,7 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
     private void showDialog(MyCalendar calendar, int position) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle("Выберите действие")
-                .setItems(new String[]{"Добавить событие", "Показать календарь", "Удалить календарь"},
+                .setItems(new String[]{"Добавить событие", "Показать календарь", "Удалить календарь", "Другие календари"},
                         (dialog, which) -> {
                             switch (which) {
                                 case 0:
@@ -81,11 +82,22 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                                 case 2:
                                     deleteCalendar(calendar, position); // Удалить календарь
                                     break;
+                                case 3:
+                                    // При выборе "Другие календари", открываем новую активность
+                                    openOtherCalendarsActivity();
+                                    break;
                             }
                         })
                 .setCancelable(true)
                 .show();
     }
+
+    // Новый метод для запуска активности "OtherCalendarsActivity"
+    private void openOtherCalendarsActivity() {
+        Intent intent = new Intent(context, OtherCalendarsActivity.class);
+        context.startActivity(intent);
+    }
+
 
     private void showMaterialDatePicker(MyCalendar calendar) {
         MaterialDatePicker<Long> materialDatePicker = MaterialDatePicker.Builder.datePicker()
@@ -442,93 +454,6 @@ public class CalendarsAdapter extends RecyclerView.Adapter<CalendarsAdapter.Cale
                     }
                 });
     }
-
-
-//    private void scheduleNotificationsForUpcomingEvents(MyCalendar calendar) {
-//        FirebaseFirestore db = FirebaseFirestore.getInstance();
-//        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-//
-//        if (userId == null) {
-//            Toast.makeText(context, "Пользователь не авторизован", Toast.LENGTH_SHORT).show();
-//            return;
-//        }
-//
-//        db.collection("users").document(userId).collection("calendars")
-//                .whereEqualTo("calendarName", calendar.getCalendarName())
-//                .get()
-//                .addOnCompleteListener(task -> {
-//                    if (task.isSuccessful() && !task.getResult().isEmpty()) {
-//                        DocumentSnapshot calendarDoc = task.getResult().getDocuments().get(0);
-//
-//                        db.collection("users").document(userId).collection("calendars")
-//                                .document(calendarDoc.getId())
-//                                .collection("events")
-//                                .get()
-//                                .addOnCompleteListener(eventsTask -> {
-//                                    if (eventsTask.isSuccessful()) {
-//                                        for (DocumentSnapshot eventDoc : eventsTask.getResult()) {
-//                                            // Извлекаем данные о событии
-//                                            String eventDate = eventDoc.getString("eventDate");
-//                                            String eventMessage = eventDoc.getString("eventDescription");
-//                                            String calendarName = calendar.getCalendarName();
-//
-//                                            // Преобразуем строку в дату
-//                                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-//                                            try {
-//                                                Date eventDateObj = sdf.parse(eventDate);
-//                                                if (eventDateObj != null) {
-//                                                    long eventTimeMillis = eventDateObj.getTime();
-//
-//                                                    // Планируем уведомление за день до события (24 часа)
-//                                                    long oneDayBeforeMillis = eventTimeMillis - 24 * 60 * 60 * 1000;  // 24 часа до события
-//                                                    long notificationTimeMillis = eventTimeMillis;  // В день события
-//
-//                                                    // Форматируем сообщение для уведомления
-//                                                    String notificationMessage = "Дата события: " + eventDate + "\n" +
-//                                                            "Календарь: " + calendarName + "\n" +
-//                                                            "Событие: " + eventMessage;
-//
-//                                                    // Планируем два уведомления
-//                                                    scheduleNotification(notificationMessage, oneDayBeforeMillis, 1);  // Уведомление за день
-//                                                    scheduleNotification(notificationMessage, notificationTimeMillis, 2);  // Уведомление в день события
-//                                                }
-//                                            } catch (ParseException e) {
-//                                                e.printStackTrace();
-//                                            }
-//                                        }
-//                                    }
-//                                });
-//                    }
-//                });
-//    }
-//
-//
-//
-//    private void scheduleNotification(String eventMessage, long triggerTimeMillis, int notificationId) {
-//        JobScheduler jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-//
-//        // Компонент для NotificationJobService
-//        ComponentName componentName = new ComponentName(context, NotificationJobService.class);
-//
-//        // Передаем дополнительные данные
-//        PersistableBundle bundle = new PersistableBundle();
-//        bundle.putString("eventMessage", eventMessage);
-//        bundle.putInt("notificationId", notificationId);  // Уникальный ID для уведомлений
-//
-//        // Планируем задачу
-//        JobInfo jobInfo = new JobInfo.Builder(notificationId, componentName)
-//                .setMinimumLatency(triggerTimeMillis - System.currentTimeMillis())  // Задержка до выполнения задачи
-//                .setOverrideDeadline(triggerTimeMillis - System.currentTimeMillis())  // Максимальная задержка
-//                .setExtras(bundle)  // Передаем данные (например, сообщение)
-//                .build();
-//
-//        // Запускаем задачу
-//        if (jobScheduler != null) {
-//            jobScheduler.schedule(jobInfo);
-//        } else {
-//            Toast.makeText(context, "Ошибка при планировании уведомления", Toast.LENGTH_SHORT).show();
-//        }
-//    }
 
 
 

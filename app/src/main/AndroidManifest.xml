@@ -2,9 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.example.kurs_06_12_2024">
+
+    <!-- Разрешения -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
@@ -18,7 +19,7 @@
         android:theme="@style/Theme.Kurs_06_12_2024"
         tools:targetApi="31">
 
-
+        <!-- Сервис уведомлений -->
         <service
             android:name=".NotificationJobService"
             android:permission="android.permission.BIND_JOB_SERVICE"/>
@@ -33,12 +34,14 @@
             </intent-filter>
         </activity>
 
-        <!-- Активности для регистрации и других экрана -->
+        <!-- Активности для регистрации и других экранов -->
         <activity android:name=".RegisterActivity" />
         <activity android:name=".LoginActivity" android:exported="true" />
         <activity android:name=".CarsActivity" />
         <activity android:name=".CalendarsActivity" />
 
-    </application>
+        <!-- Новая активность для отображения других календарей -->
+        <activity android:name=".OtherCalendarsActivity" />
 
+    </application>
 </manifest>
