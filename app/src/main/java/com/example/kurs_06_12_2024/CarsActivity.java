@@ -66,10 +66,70 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
         carModels = new HashMap<>();
 
         String[] brands = getResources().getStringArray(R.array.car_brands);
-
-        carModels.put("Ford", getResources().getStringArray(R.array.ford_models));
-        carModels.put("Toyota", getResources().getStringArray(R.array.toyota_models));
+        carModels.put("Alfa Romeo", getResources().getStringArray(R.array.alfaromeo_models));
+        carModels.put("Audi", getResources().getStringArray(R.array.audi_models));
         carModels.put("BMW", getResources().getStringArray(R.array.bmw_models));
+        carModels.put("Chevrolet", getResources().getStringArray(R.array.chevrolet_models));
+        carModels.put("Chrysler", getResources().getStringArray(R.array.chrysler_models));
+        carModels.put("Citroen", getResources().getStringArray(R.array.citroen_models));
+        carModels.put("Dodge", getResources().getStringArray(R.array.dodge_models));
+        carModels.put("Fiat", getResources().getStringArray(R.array.fiat_models));
+        carModels.put("Ford", getResources().getStringArray(R.array.ford_models));
+        carModels.put("Geely", getResources().getStringArray(R.array.geely_models));
+        carModels.put("Honda", getResources().getStringArray(R.array.honda_models));
+        carModels.put("Hyundai", getResources().getStringArray(R.array.hyundai_models));
+        carModels.put("Infiniti", getResources().getStringArray(R.array.infiniti_models));
+        carModels.put("Kia", getResources().getStringArray(R.array.kia_models));
+        carModels.put("LADA", getResources().getStringArray(R.array.lada_models));
+        carModels.put("Land Rover", getResources().getStringArray(R.array.landover_models));
+        carModels.put("Lexus", getResources().getStringArray(R.array.lexus_models));
+        carModels.put("Mazda", getResources().getStringArray(R.array.mazda_models));
+        carModels.put("Mercedes-Benz", getResources().getStringArray(R.array.mercedes_models));
+        carModels.put("Mitsubishi", getResources().getStringArray(R.array.mitsubishi_models));
+        carModels.put("Nissan", getResources().getStringArray(R.array.nissan_models));
+        carModels.put("Opel", getResources().getStringArray(R.array.opel_models));
+        carModels.put("Peugeot", getResources().getStringArray(R.array.peugeot_models));
+        carModels.put("Renault", getResources().getStringArray(R.array.renault_models));
+        carModels.put("Skoda", getResources().getStringArray(R.array.skoda_models));
+        carModels.put("Tesla", getResources().getStringArray(R.array.tesla_models));
+        carModels.put("Toyota", getResources().getStringArray(R.array.toyota_models));
+        carModels.put("Volkswagen", getResources().getStringArray(R.array.volkswagen_models));
+        carModels.put("Volvo", getResources().getStringArray(R.array.volvo_models));
+    }
+
+    private int getLogoResId(String brand) {
+        switch (brand) {
+            case "Alfa Romeo": return R.drawable.alfaromeo_logo;
+            case "Audi": return R.drawable.audi_logo;
+            case "BMW": return R.drawable.bmw_logo;
+            case "Chevrolet": return R.drawable.chevrolet_logo;
+            case "Chrysler": return R.drawable.chrysler_logo;
+            case "Citroen": return R.drawable.citroen_logo;
+            case "Dodge": return R.drawable.dodge_logo;
+            case "Fiat": return R.drawable.fiat_logo;
+            case "Ford": return R.drawable.ford_logo;
+            case "Geely": return R.drawable.geely_logo;
+            case "Honda": return R.drawable.honda_logo;
+            case "Hyundai": return R.drawable.hyundai_logo;
+            case "Infiniti": return R.drawable.infiniti_logo;
+            case "Kia": return R.drawable.kia_logo;
+            case "Lada": return R.drawable.lada_logo;
+            case "Land Rover": return R.drawable.landrover_logo;
+            case "Lexus": return R.drawable.lexus_logo;
+            case "Mazda": return R.drawable.mazda_logo;
+            case "Mercedes-Benz": return R.drawable.mercedes_logo;
+            case "Mitsubishi": return R.drawable.mitsubishi_logo;
+            case "Nissan": return R.drawable.nissan_logo;
+            case "Opel": return R.drawable.opel_logo;
+            case "Peugeot": return R.drawable.peugeot_logo;
+            case "Renault": return R.drawable.renault_logo;
+            case "Skoda": return R.drawable.skoda_logo;
+            case "Tesla": return R.drawable.tesla_logo;
+            case "Toyota": return R.drawable.toyota_logo;
+            case "Volkswagen": return R.drawable.volkswagen_logo;
+            case "Volvo": return R.drawable.volvo_logo;
+            default: return R.drawable.default_logo;
+        }
     }
 
     private void showAddCarDialog() {
@@ -233,14 +293,7 @@ public class CarsActivity extends AppCompatActivity implements CarsAdapter.OnCar
 
 
 
-    private int getLogoResId(String brand) {
-        switch (brand) {
-            case "Ford": return R.drawable.ford_logo;
-            case "Toyota": return R.drawable.toyota_logo;
-            case "BMW": return R.drawable.bmw_logo;
-            default: return R.drawable.default_logo;
-        }
-    }
+
 
     @Override
     public void onCarClick(Car car) {
